@@ -3,6 +3,10 @@
 Silver Planner is a lightweight, single-file web app for planning event layouts on a scalable 2D canvas.
 It helps you place and manage zones (rectangles and ellipses), adjust dimensions in meters, and export the final plan as SVG.
 
+## Demo
+
+https://playerpl.github.io/silver-planer/
+
 ## What It Does
 
 - Defines a planning area (width, height, name)
@@ -40,7 +44,7 @@ No build step or dependencies are required.
 ## Repository Structure
 
 - `index.html` - complete application (UI, styles, logic)
-- `read.me` - project description for GitHub
+- `README.md` - project description for GitHub
 
 ## Roadmap Ideas
 
@@ -59,4 +63,4 @@ No build step or dependencies are required.
 
 ## License
 
-Choose a license before publishing (for example MIT).
+This project is licensed under the GNU General Public License (GPL).
