@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Planer Terenu</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;background:#1a1824;overflow:hidden;height:100vh;display:flex}
+
+/* ── SIDEBAR ── */
+#sidebar{width:260px;min-width:260px;background:#1a1824;color:#fff;display:flex;flex-direction:column;border-right:1px solid #2e2b3d;height:100vh;overflow:hidden}
+#sidebar-header{padding:16px 16px 12px;border-bottom:1px solid #2e2b3d}
+#sidebar-header h1{font-size:15px;font-weight:700;letter-spacing:-.3px}
+#sidebar-header p{font-size:10px;color:#7b78a0;margin-top:3px}
+#lang-switch{display:flex;gap:4px;margin-top:8px}
+.lang-btn{background:#241f35;border:1px solid #3a3550;color:#9d9ab8;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit}
+.lang-btn.active{background:#534AB7;border-color:#7F77DD;color:#fff}
+#tabs{display:flex;border-bottom:1px solid #2e2b3d}
+.tab{flex:1;padding:9px 0;border:none;cursor:pointer;font-size:11px;font-weight:600;background:transparent;color:#7b78a0;transition:all .15s}
+.tab.active{background:#534AB7;color:#fff}
+#panel{flex:1;overflow-y:auto;padding:12px}
+#panel::-webkit-scrollbar{width:4px}
+#panel::-webkit-scrollbar-track{background:#1a1824}
+#panel::-webkit-scrollbar-thumb{background:#3a3550;border-radius:2px}
+
+.section-label{font-size:10px;color:#7b78a0;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin:0 0 8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+.grid2b{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+
+.shape-btn{background:#241f35;border:1.5px solid #3a3550;border-radius:8px;cursor:pointer;color:#ccc;display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:4px;font-size:10px;transition:all .12s;font-family:inherit}
+.shape-btn.active,.shape-btn:hover{background:#534AB7;border-color:#7F77DD;color:#fff}
+.shape-btn span.icon{font-size:20px;line-height:1}
+
+.preset-btn{background:#241f35;border:1.5px solid #3a3550;border-radius:8px;cursor:pointer;color:#ddd;display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:11px;width:100%;margin-bottom:4px;text-align:left;font-family:inherit;transition:background .1s}
+.preset-btn:hover{background:#2e2b3d}
+.preset-dot{width:10px;height:10px;flex-shrink:0;display:inline-block}
+.preset-dot.round{border-radius:50%}
+.preset-dot.rect{border-radius:2px}
+
+label.field{display:block;margin-bottom:8px}
+label.field .lbl{font-size:11px;color:#9996b5;margin-bottom:4px}
+input[type=text],input[type=number],select{width:100%;padding:5px 8px;border:1px solid #3a3550;border-radius:6px;font-size:12px;outline:none;background:#241f35;color:#fff;font-family:inherit}
+input[type=range]{width:100%;accent-color:#534AB7}
+
+.stat-box{padding:10px 12px;background:#241f35;border-radius:8px;font-size:12px;margin-bottom:10px}
+.stat-box .muted{color:#7b78a0;font-size:11px;margin-top:2px}
+
+.color-swatch{width:22px;height:22px;border-radius:5px;cursor:pointer;border:2.5px solid transparent;transition:all .1s;flex-shrink:0}
+.color-swatch.active{border-color:#fff}
+.swatches{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+
+.action-btn{border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;padding:8px 10px;border:none;font-family:inherit;transition:all .12s;width:100%}
+.btn-primary{background:#534AB7;color:#fff}
+.btn-primary:hover{background:#6259C8}
+.btn-secondary{background:#241f35;border:1px solid #3a3550;color:#ccc}
+.btn-secondary:hover{background:#2e2b3d}
+.btn-danger{background:#3d1f1f;border:1px solid #5a2d2d;color:#f08080}
+.btn-danger:hover{background:#4d2828}
+.btn-export{background:#0F6E56;color:#fff;margin-top:auto}
+.btn-export:hover{background:#1a8a6c}
+
+.el-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#241f35;border:1.5px solid #3a3550;border-radius:8px;margin-bottom:4px;cursor:pointer;transition:background .1s}
+.el-row.active{background:#534AB7;border-color:#7F77DD}
+.el-row:hover:not(.active){background:#2e2b3d}
+.el-name{flex:1;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ddd}
+.el-row.active .el-name{color:#fff}
+.el-del{background:none;border:none;color:#555;cursor:pointer;font-size:17px;line-height:1;padding:0;font-family:inherit}
+.el-del:hover{color:#f08080}
+
+#sidebar-footer{padding:10px 12px;border-top:1px solid #2e2b3d}
+#autosave-bar{font-size:10px;color:#5a5670;text-align:center;padding:4px 0 0;transition:color .3s}
+#autosave-bar.saved{color:#1D9E75}
+#autosave-bar.saving{color:#BA7517}
+#sl-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:flex-end;justify-content:flex-start}
+#sl-overlay.open{display:flex}
+#sl-panel{background:#1a1824;border:1px solid #3a3550;border-radius:12px 12px 0 0;width:260px;max-height:70vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 32px rgba(0,0,0,.4)}
+#sl-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid #2e2b3d}
+#sl-header h2{font-size:13px;font-weight:700;color:#fff}
+#sl-close{background:none;border:none;color:#7b78a0;font-size:18px;cursor:pointer;line-height:1;font-family:inherit}
+#sl-close:hover{color:#fff}
+#sl-body{flex:1;overflow-y:auto;padding:12px}
+#sl-body::-webkit-scrollbar{width:3px}
+#sl-body::-webkit-scrollbar-thumb{background:#3a3550;border-radius:2px}
+#sl-new{display:flex;gap:6px;margin-bottom:12px}
+#sl-new input{flex:1;padding:6px 8px;border:1px solid #3a3550;border-radius:6px;font-size:12px;background:#241f35;color:#fff;font-family:inherit;outline:none}
+#sl-new input:focus{border-color:#534AB7}
+#sl-new button{padding:6px 10px;background:#534AB7;border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit;white-space:nowrap}
+#sl-new button:hover{background:#6259C8}
+.sl-slots-title{font-size:10px;color:#7b78a0;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+#sl-slots{display:flex;flex-direction:column;gap:5px}
+.sl-slot{display:flex;align-items:center;gap:8px;background:#241f35;border:1px solid #3a3550;border-radius:8px;padding:8px 10px;transition:background .1s}
+.sl-slot:hover{background:#2e2b3d}
+.sl-slot-icon{font-size:16px;flex-shrink:0}
+.sl-slot-info{flex:1;min-width:0}
+.sl-slot-name{font-size:12px;font-weight:600;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sl-slot-meta{font-size:10px;color:#5a5670;margin-top:2px}
+.sl-load-btn{background:#534AB7;border:none;color:#fff;border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:inherit;flex-shrink:0}
+.sl-load-btn:hover{background:#6259C8}
+.sl-del-btn{background:none;border:none;color:#555;font-size:16px;cursor:pointer;line-height:1;padding:0;font-family:inherit;flex-shrink:0}
+.sl-del-btn:hover{color:#f08080}
+.sl-autosave-badge{font-size:9px;background:#0F6E56;color:#fff;border-radius:4px;padding:1px 5px;margin-left:4px}
+#sl-empty{color:#555;font-size:12px;text-align:center;padding:16px 0}
+
+/* ── CANVAS ── */
+#canvas-wrap{flex:1;position:relative;overflow:hidden;background:#e8e4dc}
+#canvas-wrap svg{position:absolute;inset:0;width:100%;height:100%}
+
+/* dots bg */
+#bg-dots{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,#b0a898 1px,transparent 1px);background-size:20px 20px;opacity:.35}
+
+/* HUD controls */
+#zoom-btns{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:5px}
+.zoom-btn{width:36px;height:36px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.12);color:#444;line-height:1;font-family:inherit;transition:background .1s}
+.zoom-btn:hover{background:#f0f0f0}
+
+#toggles{position:absolute;top:14px;left:14px;display:flex;gap:6px}
+.toggle{padding:5px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,.1);transition:all .15s;border:1px solid #ccc;background:#fff;color:#666;font-family:inherit}
+.toggle.on{background:#534AB7;border-color:#534AB7;color:#fff}
+#scale-info{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,.1);border:1px solid #ccc;background:#fff;color:#666}
+
+#scale-bar{position:absolute;bottom:16px;right:16px;background:#fff;padding:8px 12px;border-radius:10px;border:1px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,.1);pointer-events:none}
+#scale-bar-line{height:5px;background:#333;border-radius:3px;margin-bottom:4px}
+#scale-bar-lbl{font-size:11px;color:#555;font-weight:600}
+#scale-bar-hint{font-size:10px;color:#999;margin-top:2px}
+
+#add-hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:#534AB7;color:#fff;padding:10px 20px;border-radius:24px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(83,74,183,.4);display:none;align-items:center;gap:10px}
+#add-hint button{background:rgba(255,255,255,.2);border:none;color:#fff;cursor:pointer;border-radius:12px;padding:2px 8px;font-size:11px;font-family:inherit}
+
+#empty{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#999;opacity:.55;pointer-events:none}
+#empty .e-icon{font-size:44px;margin-bottom:8px}
+#empty .e-title{font-size:14px;font-weight:600}
+#empty .e-sub{font-size:12px;margin-top:4px}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════════════════ -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1 data-i18n="app.title">📐 Planer Terenu</h1>
+    <p data-i18n="app.subtitle">Projektowanie w skali · metry</p>
+    <div id="lang-switch">
+      <button class="lang-btn active" id="lang-pl">PL</button>
+      <button class="lang-btn" id="lang-en">EN</button>
+    </div>
+  </div>
+
+  <div id="tabs">
+    <button class="tab active" data-tab="add" data-i18n="tab.add">Elementy</button>
+    <button class="tab" data-tab="area" data-i18n="tab.area">Obszar</button>
+    <button class="tab" data-tab="list" data-i18n="tab.list">Lista</button>
+    <button class="tab" data-tab="props" data-i18n="tab.props">Właśc.</button>
+  </div>
+
+  <div id="panel">
+    <!-- ADD TAB -->
+    <div id="tab-add">
+      <div class="section-label" data-i18n="section.shapes">Kształty</div>
+      <div class="grid2">
+        <button class="shape-btn" data-shape="rect"><span class="icon">▭</span><span data-i18n="shape.rect">Prostokąt</span></button>
+        <button class="shape-btn" data-shape="square"><span class="icon">□</span><span data-i18n="shape.square">Kwadrat</span></button>
+        <button class="shape-btn" data-shape="circle"><span class="icon">○</span><span data-i18n="shape.circle">Koło</span></button>
+        <button class="shape-btn" data-shape="ellipse"><span class="icon">⬯</span><span data-i18n="shape.ellipse">Elipsa</span></button>
+      </div>
+      <div class="section-label" data-i18n="section.presets">Szablony</div>
+      <div id="presets"></div>
+    </div>
+
+    <!-- AREA TAB -->
+    <div id="tab-area" style="display:none">
+      <div class="section-label" data-i18n="section.eventArea">Obszar eventu</div>
+      <label class="field"><div class="lbl" data-i18n="field.name">Nazwa</div><input type="text" id="area-name" value="Teren eventu"/></label>
+      <div class="grid2">
+        <label class="field"><div class="lbl" data-i18n="field.widthM">Szerokość (m)</div><input type="number" id="area-w" value="62" min="1" max="1000"/></label>
+        <label class="field"><div class="lbl" data-i18n="field.depthM">Głębokość (m)</div><input type="number" id="area-h" value="42" min="1" max="1000"/></label>
+      </div>
+      <div class="stat-box">
+        <div id="stat-area">Pow. 2 604 m²</div>
+        <div class="muted" id="stat-sub">62 × 42 m</div>
+      </div>
+      <label class="field"><div class="lbl" data-i18n="field.gridStepM">Krok siatki (m)</div>
+        <select id="grid-step">
+          <option>1</option><option>2</option><option selected>5</option>
+          <option>10</option><option>20</option><option>25</option>
+        </select>
+      </label>
+      <button class="action-btn btn-primary" id="btn-fit" style="margin-bottom:8px" data-i18n="action.fitWindow">⊡ Dopasuj do okna</button>
+      <button class="action-btn btn-danger" id="btn-clear-area" data-i18n="action.clearArea">🧹 Wyczyść obszar</button>
+    </div>
+
+    <!-- LIST TAB -->
+    <div id="tab-list" style="display:none">
+      <div class="section-label" id="list-count">Elementy (0)</div>
+      <div id="el-list"></div>
+      <div id="list-empty" style="color:#555;font-size:12px;text-align:center;padding:20px 0" data-i18n="list.empty">Brak elementów</div>
+    </div>
+
+    <!-- PROPS TAB -->
+    <div id="tab-props" style="display:none">
+      <div id="no-sel" style="color:#555;font-size:12px;text-align:center;padding:20px 0" data-i18n="props.noSelection">Zaznacz element na planie</div>
+      <div id="props-form" style="display:none">
+        <label class="field"><div class="lbl" data-i18n="field.name">Nazwa</div><input type="text" id="p-name"/></label>
+        <div id="p-rect-fields" class="grid2" style="margin-bottom:8px">
+          <label class="field" style="margin:0"><div class="lbl" data-i18n="field.widthShortM">Szer. (m)</div><input type="number" id="p-w" step="0.5" min="0.5"/></label>
+          <label class="field" style="margin:0"><div class="lbl" data-i18n="field.heightShortM">Wys. (m)</div><input type="number" id="p-h" step="0.5" min="0.5"/></label>
+        </div>
+        <div id="p-ellipse-fields" class="grid2" style="margin-bottom:8px;display:none">
+          <label class="field" style="margin:0"><div class="lbl" data-i18n="field.semiAxisXM">Pół-oś X (m)</div><input type="number" id="p-rx" step="0.5" min="0.5"/></label>
+          <label class="field" style="margin:0"><div class="lbl" data-i18n="field.semiAxisYM">Pół-oś Y (m)</div><input type="number" id="p-ry" step="0.5" min="0.5"/></label>
+        </div>
+        <div class="grid2" style="margin-bottom:8px">
+          <label class="field" style="margin:0"><div class="lbl" data-i18n="field.posXM">Poz. X (m)</div><input type="number" id="p-x" step="0.5"/></label>
+          <label class="field" style="margin:0"><div class="lbl" data-i18n="field.posYM">Poz. Y (m)</div><input type="number" id="p-y" step="0.5"/></label>
+        </div>
+        <div class="section-label" data-i18n="field.color">Kolor</div>
+        <div class="swatches" id="p-swatches"></div>
+        <label class="field">
+          <div class="lbl" id="p-alpha-lbl">Przezroczystość: 68%</div>
+          <input type="range" id="p-alpha" min="0.15" max="1" step="0.05" value="0.68"/>
+        </label>
+        <div class="grid2b" style="margin-bottom:6px">
+          <button class="action-btn btn-secondary" id="btn-dup" data-i18n="action.duplicate">⧉ Duplikuj</button>
+          <button class="action-btn btn-danger" id="btn-del" data-i18n="action.delete">🗑 Usuń</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebar-footer">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+      <button class="action-btn btn-secondary" id="btn-save-open" data-i18n="action.save">💾 Zapisz</button>
+      <button class="action-btn btn-secondary" id="btn-load-open" data-i18n="action.load">📂 Wczytaj</button>
+    </div>
+    <button class="action-btn btn-danger" id="btn-clear-area-quick" data-i18n="action.clearArea" style="margin-bottom:6px">🧹 Wyczyść obszar</button>
+    <button class="action-btn btn-export" id="btn-export" data-i18n="action.exportSvg">↓ Eksportuj SVG</button>
+    <div id="autosave-bar">● auto-zapis aktywny</div>
+  </div>
+</div>
+
+<!-- SAVE/LOAD PANEL -->
+<div id="sl-overlay">
+  <div id="sl-panel">
+    <div id="sl-header">
+      <h2 id="sl-title">Zapisz projekt</h2>
+      <button id="sl-close">×</button>
+    </div>
+    <div id="sl-body">
+      <div id="sl-new">
+        <input type="text" id="sl-name-input" placeholder="Nazwa zapisu…" maxlength="40"/>
+        <button id="sl-save-btn" data-i18n="action.saveShort">Zapisz</button>
+      </div>
+      <div class="sl-slots-title" data-i18n="save.savedProjects">Zapisane projekty</div>
+      <div id="sl-slots"></div>
+      <div id="sl-empty" data-i18n="save.noProjects">Brak zapisanych projektów</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CANVAS ═══════════════════════════════════════════════════════════ -->
+<div id="canvas-wrap">
+  <div id="bg-dots"></div>
+  <svg id="main-svg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="parquet" patternUnits="userSpaceOnUse" width="10" height="10">
+        <rect width="10" height="10" fill="#F0ECFF"/>
+        <line x1="0" y1="5" x2="10" y2="5" stroke="#AFA9EC" stroke-width="0.4"/>
+        <line x1="5" y1="0" x2="5" y2="10" stroke="#AFA9EC" stroke-width="0.4"/>
+      </pattern>
+    </defs>
+    <g id="world"></g>
+  </svg>
+
+  <!-- HUD -->
+  <div id="toggles">
+    <button class="toggle on" id="tgl-grid" data-i18n="toggle.grid">Siatka</button>
+    <button class="toggle on" id="tgl-labels" data-i18n="toggle.labels">Etykiety</button>
+    <span id="scale-info">10.0 px/m</span>
+  </div>
+  <div id="zoom-btns">
+    <button class="zoom-btn" id="z-in">+</button>
+    <button class="zoom-btn" id="z-out">−</button>
+    <button class="zoom-btn" id="z-fit" title="Dopasuj">⊡</button>
+  </div>
+  <div id="scale-bar">
+    <div id="scale-bar-line" style="width:60px"></div>
+    <div id="scale-bar-lbl">10 m</div>
+    <div id="scale-bar-hint" data-i18n="hint.wheelZoom">Kółko myszy = zoom</div>
+  </div>
+  <div id="add-hint">
+    <span data-i18n="hint.clickToPlace">Kliknij na obszarze by umieścić element</span>
+    <button id="add-cancel" data-i18n="action.cancelX">Anuluj ×</button>
+  </div>
+  <div id="empty">
+    <div class="e-icon">🗺</div>
+    <div class="e-title" data-i18n="empty.title">Dodaj elementy z panelu</div>
+    <div class="e-sub" data-i18n="empty.subtitle">lub wybierz szablon by umieścić go na planie</div>
+  </div>
+</div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+const LS_LANG = "planer_lang";
+let _savedLang = null;
+try { _savedLang = localStorage.getItem(LS_LANG); } catch {}
+const initialLang = (_savedLang==="pl" || _savedLang==="en")
+  ? _savedLang
+  : ((navigator.language || "").toLowerCase().startsWith("pl") ? "pl" : "en");
+const DEFAULT_AREA_NAME = { pl:"Teren eventu", en:"Event area" };
+const I18N = {
+  pl: {
+    "app.docTitle":"Planer Terenu",
+    "app.title":"📐 Planer Terenu",
+    "app.subtitle":"Projektowanie w skali · metry",
+    "tab.add":"Elementy",
+    "tab.area":"Obszar",
+    "tab.list":"Lista",
+    "tab.props":"Właśc.",
+    "section.shapes":"Kształty",
+    "section.presets":"Szablony",
+    "section.eventArea":"Obszar eventu",
+    "field.name":"Nazwa",
+    "field.widthM":"Szerokość (m)",
+    "field.depthM":"Głębokość (m)",
+    "field.gridStepM":"Krok siatki (m)",
+    "field.widthShortM":"Szer. (m)",
+    "field.heightShortM":"Wys. (m)",
+    "field.semiAxisXM":"Pół-oś X (m)",
+    "field.semiAxisYM":"Pół-oś Y (m)",
+    "field.posXM":"Poz. X (m)",
+    "field.posYM":"Poz. Y (m)",
+    "field.color":"Kolor",
+    "shape.rect":"Prostokąt",
+    "shape.square":"Kwadrat",
+    "shape.circle":"Koło",
+    "shape.ellipse":"Elipsa",
+    "action.fitWindow":"⊡ Dopasuj do okna",
+    "action.duplicate":"⧉ Duplikuj",
+    "action.delete":"🗑 Usuń",
+    "action.save":"💾 Zapisz",
+    "action.saveShort":"Zapisz",
+    "action.load":"📂 Wczytaj",
+    "action.exportSvg":"↓ Eksportuj SVG",
+    "action.clearArea":"🧹 Wyczyść obszar",
+    "action.cancelX":"Anuluj ×",
+    "toggle.grid":"Siatka",
+    "toggle.labels":"Etykiety",
+    "hint.wheelZoom":"Kółko myszy = zoom",
+    "zoom.fitTitle":"Dopasuj",
+    "hint.clickToPlace":"Kliknij na obszarze by umieścić element",
+    "empty.title":"Dodaj elementy z panelu",
+    "empty.subtitle":"lub wybierz szablon by umieścić go na planie",
+    "list.empty":"Brak elementów",
+    "list.count":"Elementy ({count})",
+    "props.noSelection":"Zaznacz element na planie",
+    "props.alpha":"Przezroczystość: {value}%",
+    "save.title":"Zapisz projekt",
+    "load.title":"Wczytaj projekt",
+    "save.savedProjects":"Zapisane projekty",
+    "save.noProjects":"Brak zapisanych projektów",
+    "save.slotPlaceholder":"Nazwa zapisu…",
+    "save.defaultNamePrefix":"Plan",
+    "save.loaded":"Wczytaj",
+    "save.confirmLoad":"Wczytać \"{name}\"? Niezapisane zmiany zostaną utracone.",
+    "save.confirmDelete":"Usunąć \"{name}\"?",
+    "confirm.clearArea":"Wyczyścić cały obszar? Wszystkie elementy zostaną usunięte.",
+    "save.saved":"✓ zapisano: {name}",
+    "save.autosaveActive":"● auto-zapis aktywny",
+    "save.saving":"● zapisywanie…",
+    "save.autoSaved":"✓ auto-zapisano {date}",
+    "save.restored":"↩ Przywrócono auto-zapis z {date}",
+    "save.slotAuto":"auto",
+    "save.unnamed":"Bez nazwy",
+    "list.elementFallback":"Element",
+    "delete.title":"Usuń",
+    "stats.area":"Pow. {area} m²",
+    "stats.sub":"{w} × {h} m",
+    "render.areaSub":"{w} × {h} m = {area} m²",
+    "export.scale":"Skala: 1 px = {scale} m",
+    "count.items":"{count} el.",
+    "count.empty":"pusty",
+    "project.default":"Projekt",
+    "save.autosaveName":"Auto-zapis"
+  },
+  en: {
+    "app.docTitle":"Site Planner",
+    "app.title":"📐 Site Planner",
+    "app.subtitle":"Scaled planning · meters",
+    "tab.add":"Elements",
+    "tab.area":"Area",
+    "tab.list":"List",
+    "tab.props":"Props",
+    "section.shapes":"Shapes",
+    "section.presets":"Presets",
+    "section.eventArea":"Event area",
+    "field.name":"Name",
+    "field.widthM":"Width (m)",
+    "field.depthM":"Depth (m)",
+    "field.gridStepM":"Grid step (m)",
+    "field.widthShortM":"W (m)",
+    "field.heightShortM":"H (m)",
+    "field.semiAxisXM":"Semi-axis X (m)",
+    "field.semiAxisYM":"Semi-axis Y (m)",
+    "field.posXM":"Pos X (m)",
+    "field.posYM":"Pos Y (m)",
+    "field.color":"Color",
+    "shape.rect":"Rectangle",
+    "shape.square":"Square",
+    "shape.circle":"Circle",
+    "shape.ellipse":"Ellipse",
+    "action.fitWindow":"⊡ Fit to window",
+    "action.duplicate":"⧉ Duplicate",
+    "action.delete":"🗑 Delete",
+    "action.save":"💾 Save",
+    "action.saveShort":"Save",
+    "action.load":"📂 Load",
+    "action.exportSvg":"↓ Export SVG",
+    "action.clearArea":"🧹 Clear area",
+    "action.cancelX":"Cancel ×",
+    "toggle.grid":"Grid",
+    "toggle.labels":"Labels",
+    "hint.wheelZoom":"Mouse wheel = zoom",
+    "zoom.fitTitle":"Fit",
+    "hint.clickToPlace":"Click the area to place an element",
+    "empty.title":"Add elements from the panel",
+    "empty.subtitle":"or pick a preset to place it on the plan",
+    "list.empty":"No elements",
+    "list.count":"Elements ({count})",
+    "props.noSelection":"Select an element on the plan",
+    "props.alpha":"Opacity: {value}%",
+    "save.title":"Save project",
+    "load.title":"Load project",
+    "save.savedProjects":"Saved projects",
+    "save.noProjects":"No saved projects",
+    "save.slotPlaceholder":"Save name…",
+    "save.defaultNamePrefix":"Plan",
+    "save.loaded":"Load",
+    "save.confirmLoad":"Load \"{name}\"? Unsaved changes will be lost.",
+    "save.confirmDelete":"Delete \"{name}\"?",
+    "confirm.clearArea":"Clear the entire area? All elements will be removed.",
+    "save.saved":"✓ saved: {name}",
+    "save.autosaveActive":"● autosave active",
+    "save.saving":"● saving…",
+    "save.autoSaved":"✓ autosaved {date}",
+    "save.restored":"↩ Restored autosave from {date}",
+    "save.slotAuto":"auto",
+    "save.unnamed":"Untitled",
+    "list.elementFallback":"Element",
+    "delete.title":"Delete",
+    "stats.area":"Area {area} m²",
+    "stats.sub":"{w} × {h} m",
+    "render.areaSub":"{w} × {h} m = {area} m²",
+    "export.scale":"Scale: 1 px = {scale} m",
+    "count.items":"{count} items",
+    "count.empty":"empty",
+    "project.default":"Project",
+    "save.autosaveName":"Autosave"
+  }
+};
+
+let state = {
+  lang: initialLang,
+  area: { w:62, h:42, name:DEFAULT_AREA_NAME[initialLang] },
+  elements: [],
+  scale: 10,
+  pan: { x:80, y:80 },
+  selected: null,
+  addMode: null,
+  drag: null,
+  panDrag: null,
+  showGrid: true,
+  showLabels: true,
+  gridStep: 5,
+};
+
+let _uid = 1;
+const newId = () => _uid++;
+
+const PALETTE = ["#534AB7","#185FA5","#D85A30","#1D9E75","#9E7B9A","#BA7517","#E24B4A","#085041","#3C3489","#72243E"];
+
+const PRESETS = [
+  { label:{pl:"Scena 6×4 m",en:"Stage 6×4 m"}, type:"rect",   w:6,    h:4,    color:"#D85A30", name:{pl:"Scena",en:"Stage"} },
+  { label:{pl:"Parkiet 15×10 m",en:"Dance floor 15×10 m"}, type:"rect",   w:15,   h:10,   color:"#7F77DD", name:{pl:"Parkiet",en:"Dance floor"} },
+  { label:{pl:"Namiot 10×10 m",en:"Tent 10×10 m"}, type:"rect",   w:10,   h:10,   color:"#1D9E75", name:{pl:"Namiot",en:"Tent"} },
+  { label:{pl:"G. duża 17×11 m",en:"Big Star 17×11 m"}, type:"ellipse",rx:8.5, ry:5.5, color:"#534AB7", name:{pl:"Gwiazda duża",en:"Big Star"} },
+  { label:{pl:"G. mała Ø12 m",en:"Small Star Ø12 m"}, type:"ellipse",rx:6,   ry:6,   color:"#185FA5", name:{pl:"Gwiazda mała",en:"Small Star"} },
+  { label:{pl:"Strefa Chill",en:"Chill Zone"}, type:"ellipse",rx:9,   ry:8,   color:"#9E7B9A", name:{pl:"Strefa Chill",en:"Chill Zone"} },
+  { label:{pl:"Wejście 5×3 m",en:"Entry 5×3 m"}, type:"rect",   w:5,    h:3,    color:"#BA7517", name:{pl:"Wejście",en:"Entry"} },
+  { label:{pl:"Stół 2×1 m",en:"Table 2×1 m"}, type:"rect",   w:2,    h:1,    color:"#888780", name:{pl:"Stół",en:"Table"} },
+  { label:{pl:"Toaleta 3×2 m",en:"Toilet 3×2 m"}, type:"rect",   w:3,    h:2,    color:"#638a5c", name:{pl:"Toaleta",en:"Toilet"} },
+  { label:{pl:"Bar 6×3 m",en:"Bar 6×3 m"}, type:"rect",   w:6,    h:3,    color:"#BA7517", name:{pl:"Bar",en:"Bar"} },
+];
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function hexToRgba(hex, alpha) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+function safeFilename(value) {
+  return String(value || t("project.default"))
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 80);
+}
+function locale() {
+  return state.lang === "pl" ? "pl-PL" : "en-US";
+}
+function t(key, vars={}) {
+  const dict = I18N[state.lang] || I18N.pl;
+  let msg = dict[key] ?? key;
+  for (const [k,v] of Object.entries(vars)) msg = msg.replaceAll(`{${k}}`, String(v));
+  return msg;
+}
+function setLang(lang) {
+  state.lang = lang === "en" ? "en" : "pl";
+  try { localStorage.setItem(LS_LANG, state.lang); } catch {}
+  localizeElementNames();
+  applyI18n();
+  render();
+  refreshAreaStats();
+  refreshList();
+  refreshProps();
+  if (document.getElementById("sl-overlay").classList.contains("open")) refreshSlotList(document.getElementById("sl-overlay").dataset.mode || "save");
+}
+function applyI18n() {
+  document.documentElement.lang = state.lang;
+  document.title = t("app.docTitle");
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    el.textContent = t(key);
+  });
+  const mode = document.getElementById("sl-overlay").dataset.mode || "save";
+  document.getElementById("sl-title").textContent = mode==="save" ? t("save.title") : t("load.title");
+  document.getElementById("sl-name-input").placeholder = t("save.slotPlaceholder");
+  document.getElementById("z-fit").title = t("zoom.fitTitle");
+  document.getElementById("lang-pl").classList.toggle("active", state.lang==="pl");
+  document.getElementById("lang-en").classList.toggle("active", state.lang==="en");
+  document.getElementById("autosave-bar").textContent = t("save.autosaveActive");
+  refreshPresetButtons();
+}
+function localizeElementNames() {
+  state.elements.forEach(el => {
+    if (el.nameAuto && el.nameMap && el.nameMap[state.lang]) el.name = el.nameMap[state.lang];
+  });
+}
+function svgNS(tag, attrs={}, text="") {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k,v] of Object.entries(attrs)) el.setAttribute(k,v);
+  if (text) el.textContent = text;
+  return el;
+}
+function getCanvasPt(e) {
+  const r = document.getElementById("canvas-wrap").getBoundingClientRect();
+  return {
+    mx: (e.clientX - r.left - state.pan.x) / state.scale,
+    my: (e.clientY - r.top  - state.pan.y) / state.scale,
+  };
+}
+function zoomAround(cx, cy, factor) {
+  const ns = Math.max(1.5, Math.min(120, state.scale * factor));
+  const f  = ns / state.scale;
+  state.pan = { x: cx - (cx - state.pan.x)*f, y: cy - (cy - state.pan.y)*f };
+  state.scale = ns;
+}
+function fitToView() {
+  const wrap = document.getElementById("canvas-wrap").getBoundingClientRect();
+  const s = Math.min((wrap.width-140)/state.area.w, (wrap.height-140)/state.area.h);
+  state.scale = s;
+  state.pan   = { x:(wrap.width - state.area.w*s)/2, y:(wrap.height - state.area.h*s)/2 };
+}
+
+// ── CREATE ELEMENT ───────────────────────────────────────────────────────────
+function makeEl(type, cx, cy, overrides={}) {
+  const id   = newId();
+  const color = overrides.color || PALETTE[(id-1)%PALETTE.length];
+  const base  = {
+    id,
+    color,
+    alpha:0.68,
+    name:overrides.name||"",
+    type,
+    nameMap: overrides.nameMap || null,
+    nameAuto: !!overrides.nameAuto,
+  };
+  if (type==="rect" || type==="square") {
+    const w = overrides.w || (type==="square"?8:10);
+    const h = overrides.h || (type==="square"?w:6);
+    return { ...base, type:"rect", x:cx-w/2, y:cy-h/2, w, h };
+  } else {
+    const rx = overrides.rx || 6, ry = overrides.ry || 6;
+    return { ...base, type:"ellipse", x:cx, y:cy, rx, ry };
+  }
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  const world = document.getElementById("world");
+  world.innerHTML = "";
+  const S = state.scale, A = state.area;
+
+  // transform group
+  const g = svgNS("g", { transform:`translate(${state.pan.x},${state.pan.y})` });
+  world.appendChild(g);
+
+  // area shadow
+  g.appendChild(svgNS("rect", { x:0.4, y:0.4, width:A.w*S, height:A.h*S, rx:2, fill:"rgba(0,0,0,0.13)", "pointer-events":"none" }));
+
+  // area fill
+  g.appendChild(svgNS("rect", { x:0, y:0, width:A.w*S, height:A.h*S, rx:2, fill:"#EEF7EF", stroke:"#1D9E75", "stroke-width":1.5, "pointer-events":"none" }));
+
+  // area name
+  const tn = svgNS("text", { x:A.w*S/2, y:-18, "text-anchor":"middle", "font-size":14, fill:"#0F6E56", "font-weight":"700", "pointer-events":"none" }, A.name);
+  const ts = svgNS("text", { x:A.w*S/2, y:-4,  "text-anchor":"middle", "font-size":11, fill:"#5a9a6a", "pointer-events":"none" }, t("render.areaSub", { w:A.w, h:A.h, area:(A.w*A.h).toLocaleString(locale()) }));
+  g.appendChild(tn); g.appendChild(ts);
+
+  // grid
+  if (state.showGrid) {
+    const step = state.gridStep;
+    for (let x=0; x<=A.w; x+=step) {
+      const major = x===0||x===A.w;
+      g.appendChild(svgNS("line", { x1:x*S, y1:0, x2:x*S, y2:A.h*S, stroke:major?"#9E9E9E":"#D3D1C7", "stroke-width":major?1:0.4, "pointer-events":"none" }));
+      if (x>0 && x<A.w) g.appendChild(svgNS("text", { x:x*S, y:A.h*S+13, "text-anchor":"middle", "font-size":10, fill:"#888", "pointer-events":"none" }, `${x}m`));
+    }
+    for (let y=0; y<=A.h; y+=step) {
+      const major = y===0||y===A.h;
+      g.appendChild(svgNS("line", { x1:0, y1:y*S, x2:A.w*S, y2:y*S, stroke:major?"#9E9E9E":"#D3D1C7", "stroke-width":major?1:0.4, "pointer-events":"none" }));
+      if (y>0 && y<A.h) g.appendChild(svgNS("text", { x:-6, y:y*S+4, "text-anchor":"end", "font-size":10, fill:"#888", "pointer-events":"none" }, `${y}m`));
+    }
+  }
+
+  // elements
+  state.elements.forEach(el => {
+    const isSel = el.id === state.selected;
+    const stroke = isSel ? "#FF6B35" : el.color;
+    const sw     = isSel ? 2.5 : 1.5;
+    const fill   = hexToRgba(el.color, el.alpha ?? 0.68);
+    const dash   = isSel ? "none" : "4 3";
+
+    const gr = svgNS("g", { "data-id":el.id, cursor: state.addMode?"crosshair":"move", style:"user-select:none" });
+
+    if (el.type==="rect") {
+      gr.appendChild(svgNS("rect", { x:el.x*S, y:el.y*S, width:el.w*S, height:el.h*S, rx:2, fill, stroke, "stroke-width":sw, "stroke-dasharray":dash }));
+      if (isSel) {
+        [[el.x,el.y],[el.x+el.w,el.y],[el.x+el.w,el.y+el.h],[el.x,el.y+el.h]].forEach(([cx,cy]) =>
+          gr.appendChild(svgNS("circle", { cx:cx*S, cy:cy*S, r:5, fill:"white", stroke:"#FF6B35", "stroke-width":1.5, "pointer-events":"none" })));
+      }
+      if (state.showLabels) {
+        const lx=(el.x+el.w/2)*S, ly=(el.y+el.h/2)*S;
+        if (el.name) gr.appendChild(svgNS("text", { x:lx, y:ly-5, "text-anchor":"middle", "dominant-baseline":"middle", "font-size":Math.max(9,Math.min(14,el.w*S/8)), fill:el.color, "font-weight":"700", "pointer-events":"none" }, el.name));
+        gr.appendChild(svgNS("text", { x:lx, y:ly+(el.name?8:0), "text-anchor":"middle", "dominant-baseline":"middle", "font-size":Math.max(8,Math.min(12,el.w*S/9)), fill:el.color, "pointer-events":"none" }, `${(+el.w).toFixed(1)}×${(+el.h).toFixed(1)} m`));
+      }
+    } else {
+      gr.appendChild(svgNS("ellipse", { cx:el.x*S, cy:el.y*S, rx:el.rx*S, ry:el.ry*S, fill, stroke, "stroke-width":sw, "stroke-dasharray":dash }));
+
+      // ── Tent interior sketch for "Gwiazda duża" ──────────────────────────
+      const isStarBig = el.name && el.name.toLowerCase().includes("gwiazda duż");
+      const isStarSml = el.name && el.name.toLowerCase().includes("gwiazda mał");
+      if (isStarBig || isStarSml) {
+        const cx = el.x*S, cy = el.y*S;
+        const RX = el.rx*S, RY = el.ry*S;
+        const sk = svgNS("g", { "pointer-events":"none" });
+
+        if (isStarBig) {
+          // 10-pointed star outline (construction lines)
+          const pts = [];
+          for (let i=0;i<20;i++) {
+            const a = (i*Math.PI/10) - Math.PI/2;
+            const r = i%2===0 ? 1 : 0.42;
+            pts.push(`${cx + Math.cos(a)*RX*r},${cy + Math.sin(a)*RY*r}`);
+          }
+          sk.appendChild(svgNS("polygon", { points:pts.join(" "), fill:"rgba(255,255,255,0.55)", stroke:el.color, "stroke-width":0.8, "stroke-opacity":0.5 }));
+
+          // Central mast dot
+          sk.appendChild(svgNS("circle", { cx, cy, r:Math.max(2,RX*0.04), fill:el.color, opacity:"0.6" }));
+
+          // Construction lines from center to star tips
+          for (let i=0;i<10;i++) {
+            const a = (i*2*Math.PI/10) - Math.PI/2;
+            sk.appendChild(svgNS("line", { x1:cx, y1:cy, x2:cx+Math.cos(a)*RX, y2:cy+Math.sin(a)*RY, stroke:el.color, "stroke-width":0.5, "stroke-opacity":0.25 }));
+          }
+
+          // Bavarian benches layout: 2 rows × 5 table sets
+          // each set: table (narrow rect) + 2 bench strips either side
+          const rows   = 2;
+          const cols   = 5;
+          const tW     = RX * 0.22;   // table width
+          const tH     = RY * 0.18;   // table height
+          const bGap   = tH * 0.35;   // bench gap from table
+          const bH     = tH * 0.22;   // bench height
+          const colGap = RX * 0.08;
+          const rowGap = RY * 0.14;
+          const totalW = cols*tW + (cols-1)*colGap;
+          const totalH = rows*(tH+2*bGap+2*bH) + (rows-1)*rowGap;
+          const startX = cx - totalW/2;
+          const startY = cy - totalH/2;
+
+          for (let r=0;r<rows;r++) {
+            for (let c=0;c<cols;c++) {
+              const tx = startX + c*(tW+colGap);
+              const ty = startY + r*(tH+2*bGap+2*bH+rowGap) + bH + bGap;
+              const sw2 = Math.max(0.4, RX*0.008);
+              // bench top
+              sk.appendChild(svgNS("rect",{x:tx, y:ty-bGap-bH, width:tW, height:bH, rx:1, fill:"rgba(255,255,255,0.7)", stroke:el.color, "stroke-width":sw2, "stroke-opacity":0.7}));
+              // table
+              sk.appendChild(svgNS("rect",{x:tx, y:ty, width:tW, height:tH, rx:1, fill:"rgba(255,255,255,0.85)", stroke:el.color, "stroke-width":sw2*1.4, "stroke-opacity":0.85}));
+              // bench bottom
+              sk.appendChild(svgNS("rect",{x:tx, y:ty+tH+bGap, width:tW, height:bH, rx:1, fill:"rgba(255,255,255,0.7)", stroke:el.color, "stroke-width":sw2, "stroke-opacity":0.7}));
+              // table stripes (wood grain)
+              for (let s=1;s<4;s++) {
+                const sx2 = tx + s*tW/4;
+                sk.appendChild(svgNS("line",{x1:sx2,y1:ty,x2:sx2,y2:ty+tH,stroke:el.color,"stroke-width":sw2*0.5,"stroke-opacity":0.35}));
+              }
+            }
+          }
+        } else {
+          // Jehlan Mini 1 – 8-pointed star + 2×2 bench layout
+
+          // 8-pointed star outline (4 sharp tips at cardinal + 4 at diagonal, tight inner radius)
+          const pts8 = [];
+          for (let i=0;i<16;i++) {
+            const a = (i*Math.PI/8) - Math.PI/2;
+            const r = i%2===0 ? 1 : 0.28;
+            pts8.push(`${cx + Math.cos(a)*RX*r},${cy + Math.sin(a)*RY*r}`);
+          }
+          sk.appendChild(svgNS("polygon",{ points:pts8.join(" "), fill:"rgba(255,255,255,0.55)", stroke:el.color, "stroke-width":0.8, "stroke-opacity":0.5 }));
+
+          // Construction lines from center to 8 tips
+          for (let i=0;i<8;i++) {
+            const a=(i*2*Math.PI/8)-Math.PI/2;
+            sk.appendChild(svgNS("line",{x1:cx,y1:cy,x2:cx+Math.cos(a)*RX,y2:cy+Math.sin(a)*RY,stroke:el.color,"stroke-width":0.5,"stroke-opacity":0.25}));
+          }
+
+          // Central mast cross
+          sk.appendChild(svgNS("circle",{ cx, cy, r:Math.max(2,RX*0.05), fill:el.color, opacity:"0.6" }));
+
+          // 2×2 table+bench sets (like Jehlan Mini 1 photo)
+          const rows=2, cols=2;
+          const tW = RX*0.38, tH = RY*0.22;
+          const bH = tH*0.22, bGap = tH*0.28;
+          const colGap = RX*0.08, rowGap = RY*0.14;
+          const totalW = cols*tW + (cols-1)*colGap;
+          const totalH = rows*(tH+2*bGap+2*bH) + (rows-1)*rowGap;
+          const sx = cx - totalW/2, sy = cy - totalH/2;
+          const sw2 = Math.max(0.4, RX*0.01);
+
+          for (let r=0;r<rows;r++) {
+            for (let c=0;c<cols;c++) {
+              const tx = sx + c*(tW+colGap);
+              const ty = sy + r*(tH+2*bGap+2*bH+rowGap) + bH + bGap;
+
+              // bench top
+              sk.appendChild(svgNS("rect",{x:tx, y:ty-bGap-bH, width:tW, height:bH, rx:1,
+                fill:"rgba(255,255,255,0.75)", stroke:el.color, "stroke-width":sw2, "stroke-opacity":0.7}));
+              // table
+              sk.appendChild(svgNS("rect",{x:tx, y:ty, width:tW, height:tH, rx:1,
+                fill:"rgba(255,255,255,0.9)", stroke:el.color, "stroke-width":sw2*1.5, "stroke-opacity":0.9}));
+              // bench bottom
+              sk.appendChild(svgNS("rect",{x:tx, y:ty+tH+bGap, width:tW, height:bH, rx:1,
+                fill:"rgba(255,255,255,0.75)", stroke:el.color, "stroke-width":sw2, "stroke-opacity":0.7}));
+
+              // diagonal construction lines across the table set (like in the photo)
+              const setTop = ty - bGap - bH, setBot = ty + tH + bGap + bH;
+              sk.appendChild(svgNS("line",{x1:tx, y1:setTop, x2:tx+tW, y2:setBot, stroke:el.color,"stroke-width":sw2*0.7,"stroke-opacity":0.35}));
+              sk.appendChild(svgNS("line",{x1:tx+tW, y1:setTop, x2:tx, y2:setBot, stroke:el.color,"stroke-width":sw2*0.7,"stroke-opacity":0.35}));
+
+              // horizontal stripes inside table (wood grain)
+              for (let s=1;s<4;s++) {
+                const gy = ty + s*tH/4;
+                sk.appendChild(svgNS("line",{x1:tx,y1:gy,x2:tx+tW,y2:gy,stroke:el.color,"stroke-width":sw2*0.5,"stroke-opacity":0.3}));
+              }
+            }
+          }
+        }
+        gr.appendChild(sk);
+      }
+
+      if (state.showLabels) {
+        const fs = Math.max(9, Math.min(13, el.rx*S/5));
+        if (el.name) gr.appendChild(svgNS("text", { x:el.x*S, y:el.y*S-el.ry*S*0.6, "text-anchor":"middle", "dominant-baseline":"middle", "font-size":fs, fill:el.color, "font-weight":"700", "pointer-events":"none" }, el.name));
+        gr.appendChild(svgNS("text", { x:el.x*S, y:el.y*S+(el.name ? el.ry*S*0.62 : 0), "text-anchor":"middle", "dominant-baseline":"middle", "font-size":fs*0.85, fill:el.color, "pointer-events":"none" }, `${(el.rx*2).toFixed(1)}×${(el.ry*2).toFixed(1)} m`));
+      }
+    }
+
+    gr.addEventListener("mousedown", e => onElDown(e, el));
+    g.appendChild(gr);
+  });
+
+  // HUD
+  document.getElementById("scale-info").textContent = `${state.scale.toFixed(1)} px/m`;
+  const BAR_M = [1,2,5,10,20,50,100].find(v => v*state.scale >= 60) || 100;
+  const barPx = Math.min(BAR_M*state.scale, 200);
+  document.getElementById("scale-bar-line").style.width = barPx+"px";
+  document.getElementById("scale-bar-lbl").textContent  = `${BAR_M} m`;
+  document.getElementById("empty").style.display = state.elements.length===0 ? "block":"none";
+  scheduleAutoSave();
+}
+
+// ── MOUSE ────────────────────────────────────────────────────────────────────
+const svg = document.getElementById("main-svg");
+svg.addEventListener("mousedown", e => {
+  if (state.addMode) {
+    const { mx, my } = getCanvasPt(e);
+    const cx = state.area.w/2, cy = state.area.h/2;
+    const el = makeEl(state.addMode, mx, my);
+    state.elements.push(el);
+    state.selected = el.id;
+    setAddMode(null);
+    switchTab("props");
+    render();
+    refreshProps();
+    refreshList();
+    return;
+  }
+  if (e.target.closest("[data-id]")) return;
+  state.selected = null;
+  const r = document.getElementById("canvas-wrap").getBoundingClientRect();
+  state.panDrag = { sx:e.clientX, sy:e.clientY, sp:{...state.pan} };
+  render();
+});
+
+svg.addEventListener("mousemove", e => {
+  if (state.drag) {
+    const { mx, my } = getCanvasPt(e);
+    const el = state.elements.find(x => x.id===state.drag.id);
+    if (el) { el.x = mx - state.drag.ox; el.y = my - state.drag.oy; }
+    render();
+  }
+  if (state.panDrag) {
+    state.pan = {
+      x: state.panDrag.sp.x + e.clientX - state.panDrag.sx,
+      y: state.panDrag.sp.y + e.clientY - state.panDrag.sy,
+    };
+    render();
+  }
+});
+
+svg.addEventListener("mouseup", () => {
+  if (state.drag) { refreshProps(); }
+  state.drag = null;
+  state.panDrag = null;
+});
+
+function onElDown(e, el) {
+  if (state.addMode) return;
+  e.stopPropagation();
+  state.selected = el.id;
+  const { mx, my } = getCanvasPt(e);
+  state.drag = { id:el.id, ox: mx - el.x, oy: my - el.y };
+  switchTab("props");
+  render();
+  refreshProps();
+}
+
+// Wheel zoom
+document.getElementById("canvas-wrap").addEventListener("wheel", e => {
+  e.preventDefault();
+  const r = document.getElementById("canvas-wrap").getBoundingClientRect();
+  zoomAround(e.clientX-r.left, e.clientY-r.top, e.deltaY < 0 ? 1.15 : 0.87);
+  render();
+}, { passive:false });
+
+// Touch pinch
+let lastDist = null;
+document.getElementById("canvas-wrap").addEventListener("touchmove", e => {
+  if (e.touches.length===2) {
+    e.preventDefault();
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if (lastDist) {
+      const r = document.getElementById("canvas-wrap").getBoundingClientRect();
+      const cx = (e.touches[0].clientX+e.touches[1].clientX)/2 - r.left;
+      const cy = (e.touches[0].clientY+e.touches[1].clientY)/2 - r.top;
+      zoomAround(cx, cy, d/lastDist);
+      render();
+    }
+    lastDist = d;
+  }
+},{passive:false});
+document.getElementById("canvas-wrap").addEventListener("touchend", ()=>{ lastDist=null; });
+
+// Keyboard
+window.addEventListener("keydown", e => {
+  if (["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName)) return;
+  if ((e.key==="Delete"||e.key==="Backspace") && state.selected) deleteSelected();
+  if (e.key==="Escape") { setAddMode(null); state.selected=null; render(); }
+  // Arrow nudge
+  if (state.selected && ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) {
+    e.preventDefault();
+    const step = e.shiftKey ? 1 : 0.25;
+    const el = state.elements.find(x=>x.id===state.selected);
+    if (el) {
+      if (e.key==="ArrowLeft")  el.x -= step;
+      if (e.key==="ArrowRight") el.x += step;
+      if (e.key==="ArrowUp")    el.y -= step;
+      if (e.key==="ArrowDown")  el.y += step;
+      render(); refreshProps();
+    }
+  }
+});
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab===id));
+  ["add","area","list","props"].forEach(t => document.getElementById(`tab-${t}`).style.display = t===id?"block":"none");
+}
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+  switchTab(b.dataset.tab);
+  if (b.dataset.tab==="list") refreshList();
+  if (b.dataset.tab==="props") refreshProps();
+}));
+
+// ── ADD MODE ──────────────────────────────────────────────────────────────────
+function setAddMode(mode) {
+  state.addMode = mode;
+  document.querySelectorAll(".shape-btn").forEach(b => b.classList.toggle("active", b.dataset.shape===mode));
+  const hint = document.getElementById("add-hint");
+  hint.style.display = mode ? "flex" : "none";
+  document.getElementById("main-svg").style.cursor = mode ? "crosshair" : "grab";
+}
+document.querySelectorAll(".shape-btn").forEach(b => b.addEventListener("click", () => setAddMode(state.addMode===b.dataset.shape ? null : b.dataset.shape)));
+document.getElementById("add-cancel").addEventListener("click", () => setAddMode(null));
+
+// ── PRESETS ──────────────────────────────────────────────────────────────────
+const presetsDiv = document.getElementById("presets");
+function refreshPresetButtons() {
+  presetsDiv.innerHTML = "";
+  PRESETS.forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "preset-btn";
+    const isRound = p.type==="ellipse";
+
+    const dot = document.createElement("span");
+    dot.className = `preset-dot ${isRound ? "round" : "rect"}`;
+    dot.style.background = p.color;
+
+    const label = document.createElement("span");
+    label.textContent = p.label[state.lang];
+
+    btn.append(dot, label);
+    btn.addEventListener("click", () => {
+      const overrides = { ...p, name:p.name[state.lang], nameMap:p.name, nameAuto:true };
+      const el = makeEl(p.type, state.area.w/2, state.area.h/2, overrides);
+      state.elements.push(el);
+      state.selected = el.id;
+      switchTab("props");
+      render(); refreshProps(); refreshList();
+    });
+    presetsDiv.appendChild(btn);
+  });
+}
+
+// ── AREA CONTROLS ─────────────────────────────────────────────────────────────
+function refreshAreaStats() {
+  const areaValue = (state.area.w*state.area.h).toLocaleString(locale());
+  document.getElementById("stat-area").textContent = t("stats.area", { area: areaValue });
+  document.getElementById("stat-sub").textContent  = t("stats.sub", { w:state.area.w, h:state.area.h });
+}
+document.getElementById("area-name").addEventListener("input", e => { state.area.name=e.target.value; render(); });
+document.getElementById("area-w").addEventListener("input", e => { state.area.w=+e.target.value||1; refreshAreaStats(); render(); });
+document.getElementById("area-h").addEventListener("input", e => { state.area.h=+e.target.value||1; refreshAreaStats(); render(); });
+document.getElementById("grid-step").addEventListener("change", e => { state.gridStep=+e.target.value; render(); });
+document.getElementById("btn-fit").addEventListener("click", () => { fitToView(); render(); });
+
+// ── TOGGLES ───────────────────────────────────────────────────────────────────
+document.getElementById("tgl-grid").addEventListener("click", e => {
+  state.showGrid=!state.showGrid; e.target.classList.toggle("on",state.showGrid); render();
+});
+document.getElementById("tgl-labels").addEventListener("click", e => {
+  state.showLabels=!state.showLabels; e.target.classList.toggle("on",state.showLabels); render();
+});
+
+// ── ZOOM BUTTONS ──────────────────────────────────────────────────────────────
+document.getElementById("z-in").addEventListener("click", () => {
+  const r=document.getElementById("canvas-wrap").getBoundingClientRect();
+  zoomAround(r.width/2,r.height/2,1.25); render();
+});
+document.getElementById("z-out").addEventListener("click", () => {
+  const r=document.getElementById("canvas-wrap").getBoundingClientRect();
+  zoomAround(r.width/2,r.height/2,0.8); render();
+});
+document.getElementById("z-fit").addEventListener("click", () => { fitToView(); render(); });
+
+// ── LIST ─────────────────────────────────────────────────────────────────────
+function refreshList() {
+  const list = document.getElementById("el-list");
+  const empty = document.getElementById("list-empty");
+  const count = document.getElementById("list-count");
+  list.innerHTML = "";
+  count.textContent = t("list.count", { count:state.elements.length });
+  empty.style.display = state.elements.length===0 ? "block":"none";
+  [...state.elements].reverse().forEach(el => {
+    const row = document.createElement("div");
+    row.className = "el-row" + (el.id===state.selected?" active":"");
+    const isRound = el.type==="ellipse";
+
+    const dot = document.createElement("span");
+    dot.className = `preset-dot ${isRound ? "round" : "rect"}`;
+    dot.style.background = el.color;
+
+    const name = document.createElement("span");
+    name.className = "el-name";
+    name.textContent = el.name || t("list.elementFallback");
+
+    const del = document.createElement("button");
+    del.className = "el-del";
+    del.title = t("delete.title");
+    del.textContent = "×";
+    del.addEventListener("click", e => { e.stopPropagation(); deleteEl(el.id); });
+
+    row.append(dot, name, del);
+    row.addEventListener("click", () => { state.selected=el.id; switchTab("props"); render(); refreshProps(); });
+    list.appendChild(row);
+  });
+}
+
+// ── PROPS ─────────────────────────────────────────────────────────────────────
+const swatchDiv = document.getElementById("p-swatches");
+PALETTE.forEach(c => {
+  const d = document.createElement("div");
+  d.className="color-swatch"; d.style.background=c; d.dataset.color=c;
+  d.addEventListener("click", () => { updSel({color:c}); refreshProps(); });
+  swatchDiv.appendChild(d);
+});
+
+function refreshProps() {
+  const el = state.elements.find(x=>x.id===state.selected);
+  const form = document.getElementById("props-form");
+  const noSel = document.getElementById("no-sel");
+  if (!el) { form.style.display="none"; noSel.style.display="block"; return; }
+  form.style.display="block"; noSel.style.display="none";
+  document.getElementById("p-name").value  = el.name||"";
+  document.getElementById("p-x").value     = (+el.x).toFixed(2);
+  document.getElementById("p-y").value     = (+el.y).toFixed(2);
+  document.getElementById("p-alpha").value = el.alpha??0.68;
+  document.getElementById("p-alpha-lbl").textContent = t("props.alpha", { value:Math.round((el.alpha??0.68)*100) });
+  const isRect = el.type==="rect";
+  document.getElementById("p-rect-fields").style.display    = isRect?"grid":"none";
+  document.getElementById("p-ellipse-fields").style.display = isRect?"none":"grid";
+  if (isRect) {
+    document.getElementById("p-w").value = (+el.w).toFixed(2);
+    document.getElementById("p-h").value = (+el.h).toFixed(2);
+  } else {
+    document.getElementById("p-rx").value = (+el.rx).toFixed(2);
+    document.getElementById("p-ry").value = (+el.ry).toFixed(2);
+  }
+  document.querySelectorAll(".color-swatch").forEach(s => s.classList.toggle("active", s.dataset.color===el.color));
+}
+
+function updSel(updates) {
+  const i = state.elements.findIndex(x=>x.id===state.selected);
+  if (i<0) return;
+  Object.assign(state.elements[i], updates);
+  render(); refreshList();
+}
+
+["p-name","p-x","p-y","p-w","p-h","p-rx","p-ry"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => {
+    const el = state.elements.find(x=>x.id===state.selected);
+    if (!el) return;
+    const v = id==="p-name" ? document.getElementById(id).value : Number.parseFloat(document.getElementById(id).value);
+    if (id!=="p-name" && !Number.isFinite(v)) return;
+    const key = id.replace("p-","");
+    if (id==="p-name") {
+      updSel({ name:v, nameAuto:false });
+      return;
+    }
+    updSel({[key]:v});
+  });
+});
+document.getElementById("p-alpha").addEventListener("input", e => {
+  updSel({alpha:+e.target.value});
+  document.getElementById("p-alpha-lbl").textContent = t("props.alpha", { value:Math.round(+e.target.value*100) });
+});
+
+// ── DELETE / DUP ──────────────────────────────────────────────────────────────
+function deleteEl(id) {
+  state.elements = state.elements.filter(x=>x.id!==id);
+  if (state.selected===id) state.selected=null;
+  render(); refreshList(); refreshProps();
+}
+function deleteSelected() { if (state.selected) deleteEl(state.selected); }
+function clearAreaElements() {
+  if (!confirm(t("confirm.clearArea"))) return;
+  state.elements = [];
+  state.selected = null;
+  setAddMode(null);
+  try { localStorage.removeItem(LS_AUTOSAVE); } catch {}
+  const bar = document.getElementById("autosave-bar");
+  bar.textContent = t("save.autosaveActive");
+  bar.className = "";
+  render(); refreshList(); refreshProps();
+}
+
+document.getElementById("btn-del").addEventListener("click", deleteSelected);
+document.getElementById("btn-clear-area").addEventListener("click", clearAreaElements);
+document.getElementById("btn-clear-area-quick").addEventListener("click", clearAreaElements);
+document.getElementById("btn-dup").addEventListener("click", () => {
+  const el = state.elements.find(x=>x.id===state.selected);
+  if (!el) return;
+  const dup = { ...el, id:newId(), x:el.x+2, y:el.y+2 };
+  state.elements.push(dup);
+  state.selected=dup.id;
+  render(); refreshProps(); refreshList();
+});
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+document.getElementById("btn-export").addEventListener("click", () => {
+  const S=8, pad=50, A=state.area;
+  const W=A.w*S+pad*2, H=A.h*S+pad*2+40;
+
+  let g_lines="";
+  for (let x=0;x<=A.w;x+=state.gridStep) {
+    const m=x===0||x===A.w;
+    g_lines+=`<line x1="${pad+x*S}" y1="${pad}" x2="${pad+x*S}" y2="${pad+A.h*S}" stroke="${m?"#aaa":"#ddd"}" stroke-width="${m?1:0.4}"/>`;
+    if(x>0&&x<A.w) g_lines+=`<text x="${pad+x*S}" y="${pad+A.h*S+14}" text-anchor="middle" font-size="10" fill="#888" font-family="sans-serif">${x}m</text>`;
+  }
+  for (let y=0;y<=A.h;y+=state.gridStep) {
+    const m=y===0||y===A.h;
+    g_lines+=`<line x1="${pad}" y1="${pad+y*S}" x2="${pad+A.w*S}" y2="${pad+y*S}" stroke="${m?"#aaa":"#ddd"}" stroke-width="${m?1:0.4}"/>`;
+    if(y>0&&y<A.h) g_lines+=`<text x="${pad-6}" y="${pad+y*S+4}" text-anchor="end" font-size="10" fill="#888" font-family="sans-serif">${y}m</text>`;
+  }
+
+  const shapes = state.elements.map(el => {
+    const fill=hexToRgba(el.color, el.alpha??0.68);
+    const dim=el.type==="ellipse"?`${(el.rx*2).toFixed(1)}×${(el.ry*2).toFixed(1)} m`:`${(+el.w).toFixed(1)}×${(+el.h).toFixed(1)} m`;
+    const lx=el.type==="ellipse"?(pad+el.x*S):(pad+(el.x+el.w/2)*S);
+    const ly=el.type==="ellipse"?(pad+el.y*S):(pad+(el.y+el.h/2)*S);
+    const safeName = el.name ? escapeXml(el.name) : "";
+    const shape=el.type==="ellipse"
+      ?`<ellipse cx="${pad+el.x*S}" cy="${pad+el.y*S}" rx="${el.rx*S}" ry="${el.ry*S}" fill="${fill}" stroke="${el.color}" stroke-width="1.5" stroke-dasharray="4 3"/>`
+      :`<rect x="${pad+el.x*S}" y="${pad+el.y*S}" width="${el.w*S}" height="${el.h*S}" rx="2" fill="${fill}" stroke="${el.color}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    const labels=el.name?`<text x="${lx}" y="${ly-4}" text-anchor="middle" font-size="11" fill="${el.color}" font-weight="700" font-family="sans-serif">${safeName}</text>`:"";
+    return shape+"\n"+labels+`\n<text x="${lx}" y="${ly+(el.name?9:0)}" text-anchor="middle" font-size="9" fill="${el.color}" font-family="sans-serif">${dim}</text>`;
+  }).join("\n");
+
+  const svg=`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+<rect width="${W}" height="${H}" fill="white"/>
+<text x="${W/2}" y="22" text-anchor="middle" font-size="16" fill="#0F6E56" font-weight="700" font-family="sans-serif">${escapeXml(A.name)}</text>
+<text x="${W/2}" y="38" text-anchor="middle" font-size="11" fill="#5a9a6a" font-family="sans-serif">${A.w}×${A.h} m = ${(A.w*A.h).toLocaleString(locale())} m²</text>
+<rect x="${pad}" y="${pad}" width="${A.w*S}" height="${A.h*S}" fill="#EEF7EF" stroke="#1D9E75" stroke-width="1.5"/>
+${g_lines}
+${shapes}
+<rect x="${pad}" y="${H-28}" width="${10*S}" height="6" fill="#333" rx="2"/>
+<text x="${pad}" y="${H-12}" font-size="10" fill="#555" font-family="sans-serif">10 m</text>
+<text x="${pad+10*S+8}" y="${H-16}" font-size="10" fill="#888" font-family="sans-serif">${t("export.scale", { scale:(1/8).toFixed(3) })}</text>
+</svg>`;
+
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));
+  a.download=`${safeFilename(A.name)}.svg`;
+  a.click();
+});
+
+// ── SAVE / LOAD (localStorage) ───────────────────────────────────────────────
+const LS_PREFIX   = "planer_slot_";
+const LS_AUTOSAVE = "planer_autosave";
+const LS_INDEX    = "planer_index";   // JSON array of slot keys
+
+function slotList() {
+  try { return JSON.parse(localStorage.getItem(LS_INDEX)||"[]"); } catch{ return []; }
+}
+function slotSave(name, isAuto=false) {
+  const key = isAuto ? LS_AUTOSAVE : LS_PREFIX + Date.now();
+  const data = {
+    name,
+    savedAt: new Date().toISOString(),
+    lang: state.lang,
+    area: {...state.area},
+    elements: JSON.parse(JSON.stringify(state.elements)),
+    gridStep: state.gridStep,
+    showGrid: state.showGrid,
+    showLabels: state.showLabels,
+    _uid,
+  };
+  localStorage.setItem(key, JSON.stringify(data));
+  if (!isAuto) {
+    const idx = slotList().filter(k=>k!==key);
+    idx.unshift(key);
+    localStorage.setItem(LS_INDEX, JSON.stringify(idx.slice(0,20)));
+  }
+  return key;
+}
+function slotLoad(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    state.area     = data.area;
+    state.elements = data.elements;
+    state.lang     = data.lang ?? state.lang;
+    try { localStorage.setItem(LS_LANG, state.lang); } catch {}
+    state.gridStep = data.gridStep ?? 5;
+    state.showGrid = data.showGrid ?? true;
+    state.showLabels = data.showLabels ?? true;
+    state.selected = null;
+    if (data._uid) _uid = data._uid + 1;
+    document.getElementById("area-name").value = state.area.name;
+    document.getElementById("area-w").value    = state.area.w;
+    document.getElementById("area-h").value    = state.area.h;
+    document.getElementById("grid-step").value = state.gridStep;
+    applyI18n();
+    document.getElementById("tgl-grid").classList.toggle("on", state.showGrid);
+    document.getElementById("tgl-labels").classList.toggle("on", state.showLabels);
+    fitToView(); render(); refreshAreaStats(); refreshList(); refreshProps();
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+function slotDelete(key) {
+  localStorage.removeItem(key);
+  const idx = slotList().filter(k=>k!==key);
+  localStorage.setItem(LS_INDEX, JSON.stringify(idx));
+}
+function fmtDate(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString(locale(),{day:"2-digit",month:"2-digit",year:"2-digit"})
+      + " " + d.toLocaleTimeString(locale(),{hour:"2-digit",minute:"2-digit"});
+  } catch{ return "–"; }
+}
+function countEl(elements) {
+  return elements?.length ? t("count.items", { count:elements.length }) : t("count.empty");
+}
+
+// Auto-save every 30 s if there are elements
+let _autoTimer = null;
+function scheduleAutoSave() {
+  clearTimeout(_autoTimer);
+  _autoTimer = setTimeout(() => {
+    if (state.elements.length===0) return;
+    const bar = document.getElementById("autosave-bar");
+    bar.textContent = t("save.saving");
+    bar.className = "saving";
+    slotSave(t("save.autosaveName"), true);
+    bar.textContent = t("save.autoSaved", { date:fmtDate(new Date().toISOString()) });
+    bar.className = "saved";
+    setTimeout(() => { bar.textContent = t("save.autosaveActive"); bar.className=""; }, 4000);
+  }, 30000);
+}
+
+
+// ── Panel UI ──────────────────────────────────────────────────────────────────
+function openPanel(mode) {
+  const overlay = document.getElementById("sl-overlay");
+  const title   = document.getElementById("sl-title");
+  const newRow  = document.getElementById("sl-new");
+  overlay.dataset.mode = mode;
+  title.textContent = mode==="save" ? t("save.title") : t("load.title");
+  newRow.style.display = mode==="save" ? "flex" : "none";
+  if (mode==="save") {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth()+1).padStart(2,"0");
+    const d = String(today.getDate()).padStart(2,"0");
+    document.getElementById("sl-name-input").value = `${t("save.defaultNamePrefix")}-${y}${m}${d}`;
+    setTimeout(()=>{
+      const inp = document.getElementById("sl-name-input");
+      inp.focus();
+      inp.select();
+    }, 50);
+  }
+  refreshSlotList(mode);
+  overlay.classList.add("open");
+}
+function closePanel() {
+  document.getElementById("sl-overlay").classList.remove("open");
+}
+
+function refreshSlotList(mode) {
+  const container = document.getElementById("sl-slots");
+  const empty     = document.getElementById("sl-empty");
+  container.innerHTML = "";
+
+  // Auto-save slot first
+  const autoRaw = localStorage.getItem(LS_AUTOSAVE);
+  const allKeys = slotList();
+
+  const renderSlot = (key, data, isAuto=false) => {
+    const row = document.createElement("div");
+    row.className = "sl-slot";
+    const icon = document.createElement("span");
+    icon.className = "sl-slot-icon";
+    icon.textContent = isAuto ? "🔄" : "📋";
+
+    const info = document.createElement("div");
+    info.className = "sl-slot-info";
+
+    const slotName = document.createElement("div");
+    slotName.className = "sl-slot-name";
+    const nameText = document.createTextNode(data.name || t("save.unnamed"));
+    slotName.appendChild(nameText);
+    if (isAuto) {
+      const badge = document.createElement("span");
+      badge.className = "sl-autosave-badge";
+      badge.textContent = t("save.slotAuto");
+      slotName.appendChild(badge);
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "sl-slot-meta";
+    meta.textContent = `${fmtDate(data.savedAt)} · ${countEl(data.elements)} · ${data.area?.w||"?"}×${data.area?.h||"?"}m`;
+
+    info.append(slotName, meta);
+
+    const loadBtn = document.createElement("button");
+    loadBtn.className = "sl-load-btn";
+    loadBtn.textContent = t("save.loaded");
+    const safeName = data.name || t("save.unnamed");
+    loadBtn.addEventListener("click", () => {
+      if (confirm(t("save.confirmLoad", { name:safeName }))) {
+        slotLoad(key); closePanel();
+      }
+    });
+
+    row.append(icon, info, loadBtn);
+
+    if (!isAuto) {
+      const delBtn = document.createElement("button");
+      delBtn.className = "sl-del-btn";
+      delBtn.title = t("delete.title");
+      delBtn.textContent = "🗑";
+      delBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        if (confirm(t("save.confirmDelete", { name:safeName }))) { slotDelete(key); refreshSlotList(mode); }
+      });
+      row.appendChild(delBtn);
+    }
+
+    container.appendChild(row);
+  };
+
+  let hasAny = false;
+  if (autoRaw) {
+    try { renderSlot(LS_AUTOSAVE, JSON.parse(autoRaw), true); hasAny=true; } catch{}
+  }
+  allKeys.forEach(key => {
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    try { renderSlot(key, JSON.parse(raw)); hasAny=true; } catch{}
+  });
+
+  empty.style.display = hasAny ? "none" : "block";
+}
+
+document.getElementById("btn-save-open").addEventListener("click", () => openPanel("save"));
+document.getElementById("btn-load-open").addEventListener("click", () => openPanel("load"));
+document.getElementById("sl-close").addEventListener("click", closePanel);
+document.getElementById("sl-overlay").addEventListener("click", e => { if (e.target===e.currentTarget) closePanel(); });
+document.getElementById("lang-pl").addEventListener("click", () => setLang("pl"));
+document.getElementById("lang-en").addEventListener("click", () => setLang("en"));
+
+document.getElementById("sl-save-btn").addEventListener("click", () => {
+  const name = document.getElementById("sl-name-input").value.trim() || state.area.name || t("project.default");
+  slotSave(name);
+  const bar = document.getElementById("autosave-bar");
+  bar.textContent = t("save.saved", { name }); bar.className="saved";
+  setTimeout(()=>{ bar.textContent=t("save.autosaveActive"); bar.className=""; }, 4000);
+  refreshSlotList("save");
+});
+document.getElementById("sl-name-input").addEventListener("keydown", e => {
+  if (e.key==="Enter") document.getElementById("sl-save-btn").click();
+});
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById("area-name").value = state.area.name;
+applyI18n();
+refreshList();
+refreshProps();
+refreshAreaStats();
+
+// Try to restore auto-save on page load
+setTimeout(() => {
+  const autoRaw = localStorage.getItem(LS_AUTOSAVE);
+  if (autoRaw) {
+    try {
+      const data = JSON.parse(autoRaw);
+      if (data.elements?.length > 0) {
+        const bar = document.getElementById("autosave-bar");
+        bar.textContent = t("save.restored", { date:fmtDate(data.savedAt) });
+        bar.className = "saved";
+        slotLoad(LS_AUTOSAVE);
+        setTimeout(()=>{ bar.textContent=t("save.autosaveActive"); bar.className=""; }, 5000);
+        return;
+      }
+    } catch{}
+  }
+  fitToView(); render(); refreshAreaStats();
+}, 80);
+window.addEventListener("resize", () => render());
+</script>
+</body>
+</html>
