@@ -123,6 +123,7 @@ input[type=range]{width:100%;accent-color:#534AB7}
 #scale-bar-line{height:5px;background:#333;border-radius:3px;margin-bottom:4px}
 #scale-bar-lbl{font-size:11px;color:#555;font-weight:600}
 #scale-bar-hint{font-size:10px;color:#999;margin-top:2px}
+#scale-bar-hint2{font-size:10px;color:#999;margin-top:1px}
 
 #add-hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:#534AB7;color:#fff;padding:10px 20px;border-radius:24px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(83,74,183,.4);display:none;align-items:center;gap:10px}
 #add-hint button{background:rgba(255,255,255,.2);border:none;color:#fff;cursor:pointer;border-radius:12px;padding:2px 8px;font-size:11px;font-family:inherit}
@@ -213,6 +214,11 @@ input[type=range]{width:100%;accent-color:#534AB7}
           <label class="field" style="margin:0"><div class="lbl" data-i18n="field.posXM">Poz. X (m)</div><input type="number" id="p-x" step="0.5"/></label>
           <label class="field" style="margin:0"><div class="lbl" data-i18n="field.posYM">Poz. Y (m)</div><input type="number" id="p-y" step="0.5"/></label>
         </div>
+        <label class="field">
+          <div class="lbl" id="p-rot-lbl">Obrót: 0°</div>
+          <input type="range" id="p-rot-range" min="-180" max="180" step="1" value="0"/>
+        </label>
+        <button class="action-btn btn-secondary" id="btn-rot-90" style="margin-bottom:8px" data-i18n="action.rot90">↻ Ustaw 90°</button>
         <div class="section-label" data-i18n="field.color">Kolor</div>
         <div class="swatches" id="p-swatches"></div>
         <label class="field">
@@ -286,6 +292,7 @@ input[type=range]{width:100%;accent-color:#534AB7}
     <div id="scale-bar-line" style="width:60px"></div>
     <div id="scale-bar-lbl">10 m</div>
     <div id="scale-bar-hint" data-i18n="hint.wheelZoom">Kółko myszy = zoom</div>
+    <div id="scale-bar-hint2" data-i18n="hint.rotateLegend">Podwójny klik = ↻ 90°</div>
   </div>
   <div id="add-hint">
     <span data-i18n="hint.clickToPlace">Kliknij na obszarze by umieścić element</span>
@@ -329,6 +336,8 @@ const I18N = {
     "field.semiAxisYM":"Pół-oś Y (m)",
     "field.posXM":"Poz. X (m)",
     "field.posYM":"Poz. Y (m)",
+    "field.rotationDeg":"Obrót (°)",
+    "props.rotation":"Obrót: {value}°",
     "field.color":"Kolor",
     "shape.rect":"Prostokąt",
     "shape.square":"Kwadrat",
@@ -342,10 +351,12 @@ const I18N = {
     "action.load":"📂 Wczytaj",
     "action.exportSvg":"↓ Eksportuj SVG",
     "action.clearArea":"🧹 Wyczyść obszar",
+    "action.rot90":"↻ Ustaw 90°",
     "action.cancelX":"Anuluj ×",
     "toggle.grid":"Siatka",
     "toggle.labels":"Etykiety",
     "hint.wheelZoom":"Kółko myszy = zoom",
+    "hint.rotateLegend":"Podwójny klik = ↻ 90°",
     "zoom.fitTitle":"Dopasuj",
     "hint.clickToPlace":"Kliknij na obszarze by umieścić element",
     "empty.title":"Dodaj elementy z panelu",
@@ -365,6 +376,7 @@ const I18N = {
     "save.confirmDelete":"Usunąć \"{name}\"?",
     "confirm.clearArea":"Wyczyścić cały obszar? Wszystkie elementy zostaną usunięte.",
     "save.saved":"✓ zapisano: {name}",
+    "save.error":"✕ błąd zapisu (pamięć pełna?)",
     "save.autosaveActive":"● auto-zapis aktywny",
     "save.saving":"● zapisywanie…",
     "save.autoSaved":"✓ auto-zapisano {date}",
@@ -403,6 +415,8 @@ const I18N = {
     "field.semiAxisYM":"Semi-axis Y (m)",
     "field.posXM":"Pos X (m)",
     "field.posYM":"Pos Y (m)",
+    "field.rotationDeg":"Rotation (°)",
+    "props.rotation":"Rotation: {value}°",
     "field.color":"Color",
     "shape.rect":"Rectangle",
     "shape.square":"Square",
@@ -416,10 +430,12 @@ const I18N = {
     "action.load":"📂 Load",
     "action.exportSvg":"↓ Export SVG",
     "action.clearArea":"🧹 Clear area",
+    "action.rot90":"↻ Set 90°",
     "action.cancelX":"Cancel ×",
     "toggle.grid":"Grid",
     "toggle.labels":"Labels",
     "hint.wheelZoom":"Mouse wheel = zoom",
+    "hint.rotateLegend":"Double click = ↻ 90°",
     "zoom.fitTitle":"Fit",
     "hint.clickToPlace":"Click the area to place an element",
     "empty.title":"Add elements from the panel",
@@ -439,6 +455,7 @@ const I18N = {
     "save.confirmDelete":"Delete \"{name}\"?",
     "confirm.clearArea":"Clear the entire area? All elements will be removed.",
     "save.saved":"✓ saved: {name}",
+    "save.error":"✕ save failed (storage full?)",
     "save.autosaveActive":"● autosave active",
     "save.saving":"● saving…",
     "save.autoSaved":"✓ autosaved {date}",
@@ -471,6 +488,7 @@ let state = {
   showGrid: true,
   showLabels: true,
   gridStep: 5,
+  lastElClick: null,
 };
 
 let _uid = 1;
@@ -481,9 +499,11 @@ const PALETTE = ["#534AB7","#185FA5","#D85A30","#1D9E75","#9E7B9A","#BA7517","#E
 const PRESETS = [
   { label:{pl:"Scena 6×4 m",en:"Stage 6×4 m"}, type:"rect",   w:6,    h:4,    color:"#D85A30", name:{pl:"Scena",en:"Stage"} },
   { label:{pl:"Parkiet 15×10 m",en:"Dance floor 15×10 m"}, type:"rect",   w:15,   h:10,   color:"#7F77DD", name:{pl:"Parkiet",en:"Dance floor"} },
-  { label:{pl:"Namiot 10×10 m",en:"Tent 10×10 m"}, type:"rect",   w:10,   h:10,   color:"#1D9E75", name:{pl:"Namiot",en:"Tent"} },
-  { label:{pl:"G. duża 17×11 m",en:"Big Star 17×11 m"}, type:"ellipse",rx:8.5, ry:5.5, color:"#534AB7", name:{pl:"Gwiazda duża",en:"Big Star"} },
-  { label:{pl:"G. mała Ø12 m",en:"Small Star Ø12 m"}, type:"ellipse",rx:6,   ry:6,   color:"#185FA5", name:{pl:"Gwiazda mała",en:"Small Star"} },
+  { label:{pl:"Namiot 10×10 m",en:"Tent 10×10 m"}, type:"rect",   w:10,   h:10,   color:"#1D9E75", name:{pl:"Namiot",en:"Tent"}, special:"tent" },
+  { label:{pl:"Namiot",en:"Tent"}, type:"rect",   w:3,    h:3,    color:"#1D9E75", name:{pl:"Namiot",en:"Tent"}, special:"tent" },
+  { label:{pl:"Krzesła 2×10",en:"Chairs 2×10"}, type:"rect",   w:5.9,  h:1.45, color:"#4A6FA5", name:{pl:"Krzesła",en:"Chairs"}, special:"chairs_2x10" },
+  { label:{pl:"G. duża 17×11 m",en:"Big Star 17×11 m"}, type:"ellipse",rx:8.5, ry:5.5, color:"#534AB7", name:{pl:"Gwiazda duża",en:"Big Star"}, special:"star_big" },
+  { label:{pl:"G. mała Ø12 m",en:"Small Star Ø12 m"}, type:"ellipse",rx:6,   ry:6,   color:"#185FA5", name:{pl:"Gwiazda mała",en:"Small Star"}, special:"star_small" },
   { label:{pl:"Strefa Chill",en:"Chill Zone"}, type:"ellipse",rx:9,   ry:8,   color:"#9E7B9A", name:{pl:"Strefa Chill",en:"Chill Zone"} },
   { label:{pl:"Wejście 5×3 m",en:"Entry 5×3 m"}, type:"rect",   w:5,    h:3,    color:"#BA7517", name:{pl:"Wejście",en:"Entry"} },
   { label:{pl:"Stół 2×1 m",en:"Table 2×1 m"}, type:"rect",   w:2,    h:1,    color:"#888780", name:{pl:"Stół",en:"Table"} },
@@ -495,6 +515,15 @@ const PRESETS = [
 function hexToRgba(hex, alpha) {
   const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
   return `rgba(${r},${g},${b},${alpha})`;
+}
+function labelColors(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  const luma = (0.2126*r + 0.7152*g + 0.0722*b) / 255;
+  return luma > 0.6
+    ? { fill:"#101010", halo:"rgba(255,255,255,0.92)" }
+    : { fill:"#FFFFFF", halo:"rgba(0,0,0,0.75)" };
 }
 function escapeXml(value) {
   return String(value)
@@ -518,6 +547,63 @@ function t(key, vars={}) {
   let msg = dict[key] ?? key;
   for (const [k,v] of Object.entries(vars)) msg = msg.replaceAll(`{${k}}`, String(v));
   return msg;
+}
+function clampNumber(value, min, max, fallback) {
+  const n = Number.parseFloat(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+function normalizeArea(area, lang) {
+  return {
+    w: clampNumber(area?.w, 1, 1000, 62),
+    h: clampNumber(area?.h, 1, 1000, 42),
+    name: String(area?.name ?? DEFAULT_AREA_NAME[lang] ?? DEFAULT_AREA_NAME.pl),
+  };
+}
+function inferSpecial(el) {
+  if (el?.special === "star_big" || el?.special === "star_small" || el?.special === "tent" || el?.special === "chairs_2x10") return el.special;
+  const nameLc = String(el?.name || "").toLowerCase();
+  const mapPl = String(el?.nameMap?.pl || "").toLowerCase();
+  const mapEn = String(el?.nameMap?.en || "").toLowerCase();
+  const probe = [nameLc, mapPl, mapEn].join(" ");
+  if (probe.includes("krzesł") || probe.includes("chairs")) return "chairs_2x10";
+  if (probe.includes("namiot") || /\btent\b/.test(probe)) return "tent";
+  if (probe.includes("gwiazda duż") || probe.includes("big star")) return "star_big";
+  if (probe.includes("gwiazda mał") || probe.includes("small star")) return "star_small";
+  return null;
+}
+function normalizeElements(elements) {
+  if (!Array.isArray(elements)) return [];
+  return elements.map((el, idx) => {
+    const base = {
+      id: Number.isFinite(el?.id) ? el.id : newId(),
+      color: /^#[0-9A-Fa-f]{6}$/.test(el?.color || "") ? el.color : PALETTE[idx % PALETTE.length],
+      alpha: clampNumber(el?.alpha, 0.15, 1, 0.68),
+      name: String(el?.name || ""),
+      nameMap: (el?.nameMap && typeof el.nameMap === "object") ? el.nameMap : null,
+      nameAuto: !!el?.nameAuto,
+      special: inferSpecial(el),
+      rot: clampNumber(el?.rot, -180, 180, 0),
+    };
+    if (el?.type === "ellipse") {
+      return {
+        ...base,
+        type: "ellipse",
+        x: Number.isFinite(el?.x) ? el.x : 0,
+        y: Number.isFinite(el?.y) ? el.y : 0,
+        rx: clampNumber(el?.rx, 0.5, 1000, 6),
+        ry: clampNumber(el?.ry, 0.5, 1000, 6),
+      };
+    }
+    return {
+      ...base,
+      type: "rect",
+      x: Number.isFinite(el?.x) ? el.x : 0,
+      y: Number.isFinite(el?.y) ? el.y : 0,
+      w: clampNumber(el?.w, 0.5, 1000, 8),
+      h: clampNumber(el?.h, 0.5, 1000, 6),
+    };
+  });
 }
 function setLang(lang) {
   state.lang = lang === "en" ? "en" : "pl";
@@ -589,6 +675,8 @@ function makeEl(type, cx, cy, overrides={}) {
     type,
     nameMap: overrides.nameMap || null,
     nameAuto: !!overrides.nameAuto,
+    special: overrides.special || null,
+    rot: clampNumber(overrides.rot, -180, 180, 0),
   };
   if (type==="rect" || type==="square") {
     const w = overrides.w || (type==="square"?8:10);
@@ -642,27 +730,90 @@ function render() {
     const stroke = isSel ? "#FF6B35" : el.color;
     const sw     = isSel ? 2.5 : 1.5;
     const fill   = hexToRgba(el.color, el.alpha ?? 0.68);
+    const label = labelColors(el.color);
     const dash   = isSel ? "none" : "4 3";
 
     const gr = svgNS("g", { "data-id":el.id, cursor: state.addMode?"crosshair":"move", style:"user-select:none" });
+    const rcx = el.type==="rect" ? (el.x + el.w/2) * S : el.x * S;
+    const rcy = el.type==="rect" ? (el.y + el.h/2) * S : el.y * S;
+    const rot = clampNumber(el.rot, -180, 180, 0);
+    if (rot) gr.setAttribute("transform", `rotate(${rot} ${rcx} ${rcy})`);
 
     if (el.type==="rect") {
-      gr.appendChild(svgNS("rect", { x:el.x*S, y:el.y*S, width:el.w*S, height:el.h*S, rx:2, fill, stroke, "stroke-width":sw, "stroke-dasharray":dash }));
+      const rx = el.x*S, ry = el.y*S, rw = el.w*S, rh = el.h*S;
+      gr.appendChild(svgNS("rect", { x:rx, y:ry, width:rw, height:rh, rx:2, fill, stroke, "stroke-width":sw, "stroke-dasharray":dash }));
+
+      // Simple tent shading for a clean top-down look.
+      if (el.special==="tent" && rw >= 20 && rh >= 20) {
+        const tentOverlay = svgNS("g", { "pointer-events":"none" });
+        tentOverlay.appendChild(svgNS("rect", {
+          x:rx+1, y:ry+1, width:rw-2, height:rh*0.46,
+          fill:"rgba(255,255,255,0.14)"
+        }));
+        tentOverlay.appendChild(svgNS("rect", {
+          x:rx+1, y:ry+rh*0.54, width:rw-2, height:rh*0.45,
+          fill:"rgba(0,0,0,0.09)"
+        }));
+        tentOverlay.appendChild(svgNS("line", {
+          x1:rx+rw*0.5, y1:ry+2, x2:rx+rw*0.5, y2:ry+rh-2,
+          stroke:"rgba(255,255,255,0.28)", "stroke-width":Math.max(1, rw*0.01)
+        }));
+        gr.appendChild(tentOverlay);
+      }
+      if (el.special==="chairs_2x10" && rw >= 28 && rh >= 14) {
+        const chairsOverlay = svgNS("g", { "pointer-events":"none" });
+        const cols = 10, rows = 2;
+        const chairW = rw * (0.5/5.9);
+        const chairH = rh * (0.5/1.45);
+        const gapX = rw * (0.1/5.9);
+        const gapY = rh * (0.45/1.45);
+        const totalW = cols*chairW + (cols-1)*gapX;
+        const totalH = rows*chairH + gapY;
+        const startX = rx + (rw-totalW)/2;
+        const startY = ry + (rh-totalH)/2;
+        const chairStroke = "rgba(0,0,0,0.22)";
+        const chairFill = "rgba(255,255,255,0.72)";
+        const chairRadius = Math.max(0.8, Math.min(chairW, chairH)*0.16);
+
+        for (let r=0; r<rows; r++) {
+          for (let c=0; c<cols; c++) {
+            const cx = startX + c*(chairW+gapX);
+            const cy = startY + r*(chairH+gapY);
+            chairsOverlay.appendChild(svgNS("rect", {
+              x:cx, y:cy, width:chairW, height:chairH, rx:chairRadius,
+              fill:chairFill, stroke:chairStroke, "stroke-width":0.7
+            }));
+          }
+        }
+        gr.appendChild(chairsOverlay);
+      }
+
       if (isSel) {
         [[el.x,el.y],[el.x+el.w,el.y],[el.x+el.w,el.y+el.h],[el.x,el.y+el.h]].forEach(([cx,cy]) =>
           gr.appendChild(svgNS("circle", { cx:cx*S, cy:cy*S, r:5, fill:"white", stroke:"#FF6B35", "stroke-width":1.5, "pointer-events":"none" })));
       }
       if (state.showLabels) {
         const lx=(el.x+el.w/2)*S, ly=(el.y+el.h/2)*S;
-        if (el.name) gr.appendChild(svgNS("text", { x:lx, y:ly-5, "text-anchor":"middle", "dominant-baseline":"middle", "font-size":Math.max(9,Math.min(14,el.w*S/8)), fill:el.color, "font-weight":"700", "pointer-events":"none" }, el.name));
-        gr.appendChild(svgNS("text", { x:lx, y:ly+(el.name?8:0), "text-anchor":"middle", "dominant-baseline":"middle", "font-size":Math.max(8,Math.min(12,el.w*S/9)), fill:el.color, "pointer-events":"none" }, `${(+el.w).toFixed(1)}×${(+el.h).toFixed(1)} m`));
+        if (el.name) gr.appendChild(svgNS("text", {
+          x:lx, y:ly-5, "text-anchor":"middle", "dominant-baseline":"middle",
+          "font-size":Math.max(9,Math.min(14,el.w*S/8)), fill:label.fill, "font-weight":"700",
+          stroke:label.halo, "stroke-width":1.3, "paint-order":"stroke fill", "stroke-linejoin":"round",
+          "pointer-events":"none"
+        }, el.name));
+        gr.appendChild(svgNS("text", {
+          x:lx, y:ly+(el.name?8:0), "text-anchor":"middle", "dominant-baseline":"middle",
+          "font-size":Math.max(8,Math.min(12,el.w*S/9)), fill:label.fill,
+          stroke:label.halo, "stroke-width":1.1, "paint-order":"stroke fill", "stroke-linejoin":"round",
+          "pointer-events":"none"
+        }, `${(+el.w).toFixed(1)}×${(+el.h).toFixed(1)} m`));
       }
     } else {
       gr.appendChild(svgNS("ellipse", { cx:el.x*S, cy:el.y*S, rx:el.rx*S, ry:el.ry*S, fill, stroke, "stroke-width":sw, "stroke-dasharray":dash }));
 
       // ── Tent interior sketch for "Gwiazda duża" ──────────────────────────
-      const isStarBig = el.name && el.name.toLowerCase().includes("gwiazda duż");
-      const isStarSml = el.name && el.name.toLowerCase().includes("gwiazda mał");
+      const nameLc = (el.name || "").toLowerCase();
+      const isStarBig = el.special==="star_big" || nameLc.includes("gwiazda duż") || nameLc.includes("big star");
+      const isStarSml = el.special==="star_small" || nameLc.includes("gwiazda mał") || nameLc.includes("small star");
       if (isStarBig || isStarSml) {
         const cx = el.x*S, cy = el.y*S;
         const RX = el.rx*S, RY = el.ry*S;
@@ -784,8 +935,18 @@ function render() {
 
       if (state.showLabels) {
         const fs = Math.max(9, Math.min(13, el.rx*S/5));
-        if (el.name) gr.appendChild(svgNS("text", { x:el.x*S, y:el.y*S-el.ry*S*0.6, "text-anchor":"middle", "dominant-baseline":"middle", "font-size":fs, fill:el.color, "font-weight":"700", "pointer-events":"none" }, el.name));
-        gr.appendChild(svgNS("text", { x:el.x*S, y:el.y*S+(el.name ? el.ry*S*0.62 : 0), "text-anchor":"middle", "dominant-baseline":"middle", "font-size":fs*0.85, fill:el.color, "pointer-events":"none" }, `${(el.rx*2).toFixed(1)}×${(el.ry*2).toFixed(1)} m`));
+        if (el.name) gr.appendChild(svgNS("text", {
+          x:el.x*S, y:el.y*S-el.ry*S*0.6, "text-anchor":"middle", "dominant-baseline":"middle",
+          "font-size":fs, fill:label.fill, "font-weight":"700",
+          stroke:label.halo, "stroke-width":1.2, "paint-order":"stroke fill", "stroke-linejoin":"round",
+          "pointer-events":"none"
+        }, el.name));
+        gr.appendChild(svgNS("text", {
+          x:el.x*S, y:el.y*S+(el.name ? el.ry*S*0.62 : 0), "text-anchor":"middle", "dominant-baseline":"middle",
+          "font-size":fs*0.85, fill:label.fill,
+          stroke:label.halo, "stroke-width":1, "paint-order":"stroke fill", "stroke-linejoin":"round",
+          "pointer-events":"none"
+        }, `${(el.rx*2).toFixed(1)}×${(el.ry*2).toFixed(1)} m`));
       }
     }
 
@@ -851,6 +1012,20 @@ svg.addEventListener("mouseup", () => {
 function onElDown(e, el) {
   if (state.addMode) return;
   e.stopPropagation();
+  const now = performance.now();
+  const last = state.lastElClick;
+  if (last && last.id===el.id && (now-last.ts) < 320) {
+    state.selected = el.id;
+    const curr = clampNumber(el.rot, -180, 180, 0);
+    const next = ((((curr - 90) + 180) % 360) + 360) % 360 - 180;
+    el.rot = next;
+    state.lastElClick = null;
+    render();
+    refreshProps();
+    refreshList();
+    return;
+  }
+  state.lastElClick = { id:el.id, ts:now };
   state.selected = el.id;
   const { mx, my } = getCanvasPt(e);
   state.drag = { id:el.id, ox: mx - el.x, oy: my - el.y };
@@ -963,9 +1138,23 @@ function refreshAreaStats() {
   document.getElementById("stat-sub").textContent  = t("stats.sub", { w:state.area.w, h:state.area.h });
 }
 document.getElementById("area-name").addEventListener("input", e => { state.area.name=e.target.value; render(); });
-document.getElementById("area-w").addEventListener("input", e => { state.area.w=+e.target.value||1; refreshAreaStats(); render(); });
-document.getElementById("area-h").addEventListener("input", e => { state.area.h=+e.target.value||1; refreshAreaStats(); render(); });
-document.getElementById("grid-step").addEventListener("change", e => { state.gridStep=+e.target.value; render(); });
+document.getElementById("area-w").addEventListener("input", e => {
+  state.area.w = clampNumber(e.target.value, 1, 1000, state.area.w || 62);
+  e.target.value = state.area.w;
+  refreshAreaStats();
+  render();
+});
+document.getElementById("area-h").addEventListener("input", e => {
+  state.area.h = clampNumber(e.target.value, 1, 1000, state.area.h || 42);
+  e.target.value = state.area.h;
+  refreshAreaStats();
+  render();
+});
+document.getElementById("grid-step").addEventListener("change", e => {
+  state.gridStep = clampNumber(e.target.value, 1, 100, 5);
+  e.target.value = state.gridStep;
+  render();
+});
 document.getElementById("btn-fit").addEventListener("click", () => { fitToView(); render(); });
 
 // ── TOGGLES ───────────────────────────────────────────────────────────────────
@@ -1038,6 +1227,9 @@ function refreshProps() {
   document.getElementById("p-name").value  = el.name||"";
   document.getElementById("p-x").value     = (+el.x).toFixed(2);
   document.getElementById("p-y").value     = (+el.y).toFixed(2);
+  const rot = clampNumber(el.rot, -180, 180, 0).toFixed(0);
+  document.getElementById("p-rot-range").value = rot;
+  document.getElementById("p-rot-lbl").textContent = t("props.rotation", { value:rot });
   document.getElementById("p-alpha").value = el.alpha??0.68;
   document.getElementById("p-alpha-lbl").textContent = t("props.alpha", { value:Math.round((el.alpha??0.68)*100) });
   const isRect = el.type==="rect";
@@ -1064,15 +1256,31 @@ function updSel(updates) {
   document.getElementById(id).addEventListener("input", () => {
     const el = state.elements.find(x=>x.id===state.selected);
     if (!el) return;
-    const v = id==="p-name" ? document.getElementById(id).value : Number.parseFloat(document.getElementById(id).value);
+    const raw = document.getElementById(id).value;
+    const v = id==="p-name" ? raw : Number.parseFloat(raw);
     if (id!=="p-name" && !Number.isFinite(v)) return;
     const key = id.replace("p-","");
     if (id==="p-name") {
       updSel({ name:v, nameAuto:false });
       return;
     }
-    updSel({[key]:v});
+    const minSized = ["p-w","p-h","p-rx","p-ry"].includes(id) ? Math.max(0.5, v) : v;
+    updSel({[key]:minSized});
   });
+});
+document.getElementById("p-rot-range").addEventListener("input", e => {
+  const rot = clampNumber(e.target.value, -180, 180, 0);
+  updSel({rot});
+  document.getElementById("p-rot-lbl").textContent = t("props.rotation", { value:Math.round(rot) });
+});
+document.getElementById("btn-rot-90").addEventListener("click", () => {
+  const el = state.elements.find(x=>x.id===state.selected);
+  if (!el) return;
+  const curr = clampNumber(el.rot, -180, 180, 0);
+  const next = ((((curr + 90) + 180) % 360) + 360) % 360 - 180;
+  updSel({rot:next});
+  document.getElementById("p-rot-range").value = String(Math.round(next));
+  document.getElementById("p-rot-lbl").textContent = t("props.rotation", { value:Math.round(next) });
 });
 document.getElementById("p-alpha").addEventListener("input", e => {
   updSel({alpha:+e.target.value});
@@ -1129,15 +1337,24 @@ document.getElementById("btn-export").addEventListener("click", () => {
 
   const shapes = state.elements.map(el => {
     const fill=hexToRgba(el.color, el.alpha??0.68);
+    const label = labelColors(el.color);
     const dim=el.type==="ellipse"?`${(el.rx*2).toFixed(1)}×${(el.ry*2).toFixed(1)} m`:`${(+el.w).toFixed(1)}×${(+el.h).toFixed(1)} m`;
     const lx=el.type==="ellipse"?(pad+el.x*S):(pad+(el.x+el.w/2)*S);
     const ly=el.type==="ellipse"?(pad+el.y*S):(pad+(el.y+el.h/2)*S);
+    const rot = clampNumber(el.rot, -180, 180, 0);
     const safeName = el.name ? escapeXml(el.name) : "";
     const shape=el.type==="ellipse"
       ?`<ellipse cx="${pad+el.x*S}" cy="${pad+el.y*S}" rx="${el.rx*S}" ry="${el.ry*S}" fill="${fill}" stroke="${el.color}" stroke-width="1.5" stroke-dasharray="4 3"/>`
       :`<rect x="${pad+el.x*S}" y="${pad+el.y*S}" width="${el.w*S}" height="${el.h*S}" rx="2" fill="${fill}" stroke="${el.color}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
-    const labels=el.name?`<text x="${lx}" y="${ly-4}" text-anchor="middle" font-size="11" fill="${el.color}" font-weight="700" font-family="sans-serif">${safeName}</text>`:"";
-    return shape+"\n"+labels+`\n<text x="${lx}" y="${ly+(el.name?9:0)}" text-anchor="middle" font-size="9" fill="${el.color}" font-family="sans-serif">${dim}</text>`;
+    const labels=el.name
+      ?`<text x="${lx}" y="${ly-4}" text-anchor="middle" font-size="11" fill="${label.fill}" stroke="${label.halo}" stroke-width="1.2" paint-order="stroke fill" stroke-linejoin="round" font-weight="700" font-family="sans-serif">${safeName}</text>`
+      :"";
+    const dims = `<text x="${lx}" y="${ly+(el.name?9:0)}" text-anchor="middle" font-size="9" fill="${label.fill}" stroke="${label.halo}" stroke-width="1" paint-order="stroke fill" stroke-linejoin="round" font-family="sans-serif">${dim}</text>`;
+    const block = shape+"\n"+labels+"\n"+dims;
+    if (!rot) return block;
+    const cx = el.type==="ellipse" ? (pad+el.x*S) : (pad+(el.x+el.w/2)*S);
+    const cy = el.type==="ellipse" ? (pad+el.y*S) : (pad+(el.y+el.h/2)*S);
+    return `<g transform="rotate(${rot} ${cx} ${cy})">${block}</g>`;
   }).join("\n");
 
   const svg=`<?xml version="1.0" encoding="UTF-8"?>
@@ -1180,28 +1397,35 @@ function slotSave(name, isAuto=false) {
     showLabels: state.showLabels,
     _uid,
   };
-  localStorage.setItem(key, JSON.stringify(data));
-  if (!isAuto) {
-    const idx = slotList().filter(k=>k!==key);
-    idx.unshift(key);
-    localStorage.setItem(LS_INDEX, JSON.stringify(idx.slice(0,20)));
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    if (!isAuto) {
+      const idx = slotList().filter(k=>k!==key);
+      idx.unshift(key);
+      localStorage.setItem(LS_INDEX, JSON.stringify(idx.slice(0,20)));
+    }
+    return key;
+  } catch (e) {
+    console.error(e);
+    return null;
   }
-  return key;
 }
 function slotLoad(key) {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return false;
     const data = JSON.parse(raw);
-    state.area     = data.area;
-    state.elements = data.elements;
-    state.lang     = data.lang ?? state.lang;
+    state.lang     = data.lang === "en" ? "en" : "pl";
     try { localStorage.setItem(LS_LANG, state.lang); } catch {}
+    state.area     = normalizeArea(data.area, state.lang);
+    state.elements = normalizeElements(data.elements);
     state.gridStep = data.gridStep ?? 5;
     state.showGrid = data.showGrid ?? true;
     state.showLabels = data.showLabels ?? true;
     state.selected = null;
-    if (data._uid) _uid = data._uid + 1;
+    const maxId = state.elements.reduce((m, el) => Math.max(m, Number.isFinite(el.id) ? el.id : 0), 0);
+    const fromSave = Number.isFinite(data._uid) ? data._uid + 1 : 1;
+    _uid = Math.max(_uid, fromSave, maxId + 1);
     document.getElementById("area-name").value = state.area.name;
     document.getElementById("area-w").value    = state.area.w;
     document.getElementById("area-h").value    = state.area.h;
@@ -1238,7 +1462,12 @@ function scheduleAutoSave() {
     const bar = document.getElementById("autosave-bar");
     bar.textContent = t("save.saving");
     bar.className = "saving";
-    slotSave(t("save.autosaveName"), true);
+    const savedKey = slotSave(t("save.autosaveName"), true);
+    if (!savedKey) {
+      bar.textContent = t("save.error");
+      bar.className = "";
+      return;
+    }
     bar.textContent = t("save.autoSaved", { date:fmtDate(new Date().toISOString()) });
     bar.className = "saved";
     setTimeout(() => { bar.textContent = t("save.autosaveActive"); bar.className=""; }, 4000);
@@ -1358,8 +1587,13 @@ document.getElementById("lang-en").addEventListener("click", () => setLang("en")
 
 document.getElementById("sl-save-btn").addEventListener("click", () => {
   const name = document.getElementById("sl-name-input").value.trim() || state.area.name || t("project.default");
-  slotSave(name);
   const bar = document.getElementById("autosave-bar");
+  const savedKey = slotSave(name);
+  if (!savedKey) {
+    bar.textContent = t("save.error");
+    bar.className = "";
+    return;
+  }
   bar.textContent = t("save.saved", { name }); bar.className="saved";
   setTimeout(()=>{ bar.textContent=t("save.autosaveActive"); bar.className=""; }, 4000);
   refreshSlotList("save");
