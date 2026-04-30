@@ -658,7 +658,8 @@ function zoomAround(cx, cy, factor) {
 }
 function fitToView() {
   const wrap = document.getElementById("canvas-wrap").getBoundingClientRect();
-  const s = Math.min((wrap.width-140)/state.area.w, (wrap.height-140)/state.area.h);
+  const sRaw = Math.min((wrap.width-140)/state.area.w, (wrap.height-140)/state.area.h);
+  const s = Math.max(1.5, Math.min(120, sRaw));
   state.scale = s;
   state.pan   = { x:(wrap.width - state.area.w*s)/2, y:(wrap.height - state.area.h*s)/2 };
 }
@@ -1419,7 +1420,7 @@ function slotLoad(key) {
     try { localStorage.setItem(LS_LANG, state.lang); } catch {}
     state.area     = normalizeArea(data.area, state.lang);
     state.elements = normalizeElements(data.elements);
-    state.gridStep = data.gridStep ?? 5;
+    state.gridStep = clampNumber(data.gridStep, 1, 100, 5);
     state.showGrid = data.showGrid ?? true;
     state.showLabels = data.showLabels ?? true;
     state.selected = null;
